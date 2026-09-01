@@ -29,3 +29,15 @@ venv.bak/
 
 # macOS
 .DS_Store
+
+# Virtual Environment
+env/
+venv/
+ENV/
+
+# Database
+*.sqlite3
+
+# Python Cache
+__pycache__/
+*.pyc
