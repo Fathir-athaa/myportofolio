@@ -30,6 +30,7 @@ venv.bak/
 !.vscode/extensions.json
 .history
 
+#test test 
 # macOS
 .DS_Store
 
