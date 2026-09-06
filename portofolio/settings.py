@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-p1r1m&+j+f%$^)4qhymci4t(d3tn5nmb%ul(akp&+u9sn^13dg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "fathir-atha-myportofolio.pws.cs.ui.ac.id"]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1' , 'fathir-atha-myportofolio.pws.cs.ui.ac.id','*']
 PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
 
 
@@ -66,6 +66,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -138,6 +139,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 WHITENOISE_USE_FINDERS = True
