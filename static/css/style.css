@@ -43,6 +43,7 @@ h1,
 }
 
 .site-header .container {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -57,14 +58,43 @@ h1,
 }
 
 .site-header nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 2rem;
 }
 
 .site-header nav a {
-  color: var(--ink);
+  position: relative;
+  color: #ffffff;
   text-decoration: none;
+  padding: 6px 0;
+  transition: color 0.3s ease;
   font-size: 0.95rem;
+}
+
+.site-header nav a::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background-color: #ff0033;
+  box-shadow:
+    0 0 8px #ff0033,
+    0 0 16px #ff0033;
+  transition: width 0.3s ease-in-out;
+}
+
+.site-header nav a:hover {
+  color: #ff3355;
+  text-shadow: 0 0 8px rgba(255, 0, 51, 0.6);
+}
+
+.site-header nav a:hover::after {
+  width: 100%;
 }
 
 .hero {
@@ -95,6 +125,7 @@ h1,
   color: var(--accent-dark);
   font-weight: 700;
   margin-bottom: 0.75rem;
+  animation: flip3D 0.8s ease-out forwards;
 }
 
 .hero-identity h1 {
@@ -342,4 +373,70 @@ h1,
   100% {
     transform: translateX(-50%);
   }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/*Aturan Animasi 3D Flip */
+@keyframes flip3D {
+  0% {
+    opacity: 0;
+    transform: perspective(400px) rotateX(-90deg);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(400px) rotateX(0deg);
+  }
+}
+
+/* EXPERIENCE SECTION SKELETON */
+.experience-section {
+  padding: 1.5rem 0 3rem 0;
+}
+
+.experience-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.exp-card h3 {
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  color: #ffffff;
+}
+
+.exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.exp-badge {
+  font-size: 0.75rem;
+  background-color: rgba(230, 0, 35, 0.15);
+  color: #ff4d6d;
+  border: 1px solid rgba(230, 0, 35, 0.4);
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.exp-role {
+  color: var(--accent-dark, #ff0033);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.exp-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted, #a0a0a0);
 }
