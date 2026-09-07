@@ -397,10 +397,11 @@ html {
 }
 
 .experience-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
-  max-width: 800px;
+  width: 100%;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -439,4 +440,72 @@ html {
 .exp-desc {
   font-size: 0.95rem;
   color: var(--text-muted, #a0a0a0);
+}
+
+.exp-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;                          /* Menyamakan tinggi kartu kiri & kanan */
+  padding: 1.25rem;
+  box-sizing: border-box;
+}
+
+/* Gambar di Dalam Kartu */
+.exp-image {
+  width: 100%;
+  height: 240px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 1rem;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.exp-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Responsif: otomatis tumpuk atas-bawah di layar HP */
+@media (max-width: 768px) {
+  .experience-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* TRACK SLIDER*/
+.exp-slider-track {
+  display: flex;
+  width: 300%; /* 300% karena ada 3 gambar */
+  height: 100%;
+  animation: expSlide 12s infinite ease-in-out;
+}
+
+.exp-slider-track img {
+  width: 33.333%; /* Tiap gambar mengambil 1/3 dari lebar track */
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Pause animasi saat kursor diarahkan ke kartu */
+.exp-card:hover .exp-slider-track {
+  animation-play-state: paused;
+}
+
+/* ANIMASI KEYFRAMES PURE CSS3 */
+@keyframes expSlide {
+  0%, 28% {
+    transform: translateX(0); /* Gambar 1 */
+  }
+  33%, 61% {
+    transform: translateX(-33.333%); /* Gambar 2 */
+  }
+  66%, 94% {
+    transform: translateX(-66.666%); /* Gambar 3 */
+  }
+  100% {
+    transform: translateX(0); /* Kembali ke Gambar 1 */
+  }
 }
