@@ -1,72 +1,8 @@
+/*ABOUT ME*/
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-/* Smooth Scroll Effect untuk Seluruh Halaman */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Seksi Skills */
-.skills-section {
-  padding: 5rem 0;
-}
-
-.section-title {
-  font-size: 2rem;
-  color: #ffffff;
-  margin-bottom: 0.5rem;
-}
-
-.section-subtitle {
-  color: #a0a0a0;
-  margin-bottom: 2.5rem;
-}
-
-/* Grid Tata Letak Kartu Skills */
-.skills-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.5rem;
-}
-
-/* Kartu Skill Tema Dark Crimson */
-.skill-card {
-  background-color: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(230, 0, 35, 0.2);
-  border-radius: 12px;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
-}
-
-.skill-card:hover {
-  border-color: rgba(230, 0, 35, 0.6);
-  box-shadow: 0 0 20px rgba(230, 0, 35, 0.25);
-  transform: translateY(-4px);
-}
-
-.skill-card h3 {
-  font-size: 1.1rem;
-  color: #e60023;
-  margin-bottom: 1rem;
-}
-
-.skill-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.skill-list li {
-  color: #d0d0d0;
-  padding: 0.4rem 0;
-  font-size: 0.95rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.skill-list li:last-child {
-  border-bottom: none;
 }
 
 :root {
@@ -302,5 +238,106 @@ h1,
     opacity: 0.8;
     box-shadow: 0 0 50px var(--accent-dark);
     transform: scale(1);
+  }
+}
+
+/*SKILLS*/
+.skills-section {
+  padding: 1.5rem 0 4rem 0;
+}
+
+/*Judul & Subjudul*/
+.skills-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+  color: #a0a0a0;
+  margin-bottom: 0;
+}
+
+/* Base Kartu Skills */
+.skill-card {
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(230, 0, 35, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.skill-card:hover {
+  border-color: rgba(230, 0, 35, 0.6);
+  box-shadow: 0 0 20px rgba(230, 0, 35, 0.25);
+  transform: translateY(-4px);
+}
+
+.skill-card h3 {
+  font-size: 1.1rem;
+  color: #e60023;
+  margin-bottom: 1.5rem;
+}
+
+/*Custom Kartu Slider Single*/
+.slider-card {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* Container Slider dengan Efek Fading Transparan di Ujung Kiri & Kanan */
+.slider-container {
+  width: 100%;
+  overflow: hidden;
+  padding: 0.5rem 0;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/*Track Berisi Ikon yang Bergeser*/
+.slider-track {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  width: max-content;
+  animation: logo-scroll 18s linear infinite;
+}
+
+/*Animasi berenti Sementara Saat Kursor Mengarah ke Slider*/
+.slider-container:hover .slider-track {
+  animation-play-state: paused;
+}
+
+/*Item Ikon di Dalam Slider*/
+.slide-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #d0d0d0;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.slide-item img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/*Keyframes Pergeseran*/
+@keyframes logo-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }
