@@ -309,6 +309,7 @@ h1,
   gap: 3rem;
   width: max-content;
   animation: logo-scroll 18s linear infinite;
+  will-change: transform;
 }
 
 /*Animasi berenti Sementara Saat Kursor Mengarah ke Slider*/
@@ -324,6 +325,7 @@ h1,
   color: #d0d0d0;
   font-size: 0.95rem;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .slide-item img {
