@@ -329,8 +329,20 @@ h1,
   width: 100%;
   overflow: hidden;
   padding: 0.5rem 0;
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
 }
 
 /*Track Berisi Ikon yang Bergeser*/
@@ -392,18 +404,6 @@ html {
 }
 
 /* EXPERIENCE SECTION SKELETON */
-.experience-section {
-  padding: 1.5rem 0 3rem 0;
-}
-
-.experience-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-}
 
 .exp-card h3 {
   margin-bottom: 0.25rem;
@@ -445,7 +445,7 @@ html {
 .exp-card {
   display: flex;
   flex-direction: column;
-  height: 100%;                          /* Menyamakan tinggi kartu kiri & kanan */
+  height: 100%; /* Menyamakan tinggi kartu kiri & kanan */
   padding: 1.25rem;
   box-sizing: border-box;
 }
@@ -496,13 +496,16 @@ html {
 
 /* ANIMASI KEYFRAMES PURE CSS3 */
 @keyframes expSlide {
-  0%, 28% {
+  0%,
+  28% {
     transform: translateX(0); /* Gambar 1 */
   }
-  33%, 61% {
+  33%,
+  61% {
     transform: translateX(-33.333%); /* Gambar 2 */
   }
-  66%, 94% {
+  66%,
+  94% {
     transform: translateX(-66.666%); /* Gambar 3 */
   }
   100% {
@@ -652,7 +655,9 @@ html {
   font-size: 0.9rem;
   text-decoration: none;
   display: inline-block;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .social-link-btn:hover {
@@ -699,4 +704,58 @@ header {
   background-color: rgba(11, 11, 11, 0.85);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #381017;
+}
+
+.experience-section {
+  padding: 4rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.section-kicker {
+  color: var(--accent-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.experience-section h1 {
+  margin: 0.4rem 0 1.5rem;
+  font-size: 2rem;
+}
+
+.experience-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.experience-card {
+  padding: 1.25rem;
+  background-color: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.experience-category {
+  color: var(--accent-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.experience-card h2 {
+  margin: 0.5rem 0;
+  font-size: 1.25rem;
+}
+
+.experience-description,
+.empty-state {
+  color: var(--text-muted);
+}
+
+.experience-status {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
 }

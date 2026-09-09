@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fathir Atha Rizki Tasril - Portfolio</title>
+    <title>{{name}} - Portfolio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -12,12 +12,10 @@
 <body>
     <header class="site-header">
         <div class="container">
-            <a href="#profile" class="brand">Fathir Atha Rizki Tasril</a>
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
             <nav>
-                <a href="#profile" >About Me</a>
-                <a href="#skills" >Skills</a>
-                <a href="#experience">Experience</a>
-                <a href="#contact" class="nav-link">Contact Me</a>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
             </nav>
         </div>
     </header>
@@ -28,22 +26,21 @@
             <div class="container hero-grid">
                 <div class="hero-identity">
                     <p class="hero-kicker">Computer Science &middot; Universitas Indonesia</p>
-                    <h1>Fathir Atha Rizki Tasril</h1>
+                    <h1>{{name}}</h1>
                 </div>
                 <div class="hero-photo">
                     <div class="photo-block"></div>
-                    <img class="avatar" src="static/img/poto.jpg" alt="Photo of Fathir">
+                    <img class="avatar" src="static/img/poto.jpg" alt="Photo of {{ name }}">
                 </div>
                 <div class="hero-details">
-                    <p class="bio">An Information Systems student specializing in systems analysis, software engineering, and data exploration. Possesses a strong technical foundation and a logical mindset to translate complex requirements into structured, efficient, and impactful digital solutions.</p>
-                    <dl class = "meta-list">
+                    <p class="bio">{{bio}} </p>
                         <div class="meta-row">
                             <dt>NPM</dt>
-                            <dd>2506656734</dd>
+                            <dd>{{npm}}</dd>
                         </div>
                         <div class="meta-row">
                             <dt>Program</dt>
-                            <dd>S1 Sistem Informasi</dd>
+                            <dd>{{study_program}}</dd>
                         </div>
                     </dl>
                 </div>
@@ -87,101 +84,6 @@
                             <div class="slide-item"><img src="static/img/canva-original.svg" alt="Canva"><span>Canva</span></div>
                             <div class="slide-item"><img src="static/img/github.svg" alt="GitHub"><span>GitHub</span></div>
                             <div class="slide-item"><img src="static/img/vscode-original.svg" alt="vscode"><span>VS Code</span></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- HTML BAGIAN EXPERIENCE -->
-        <section class="experience-section" id="experience">
-            <div class="container">
-                <div class="skills-header">
-                    <h2 class="section-title">Experience</h2>
-                    <p class="section-subtitle">Organizational involvement and activities</p>
-                </div>
-
-                <div class="experience-grid">
-                <!-- Experience 1 -->
-                <div class="skill-card exp-card">
-                    <div class="exp-image">
-                        <div class="exp-slider-track">
-                            <img src="static/img/google12.png" alt="Google Developer Groups 1">
-                            <img src="static/img/kantorGoogle.jpg" alt="Google Developer Groups 2">
-                            <img src="static/img/Google.jpg" alt="Google Developer Groups 3">
-                        </div>
-                    </div>
-                    <div class="exp-content">
-                        <div class="exp-header">
-                            <h3>Google Developer Groups UI</h3>
-                            <span class="exp-badge">Active Member</span>
-                        </div>
-                        <p class="exp-role">Staff Software engineering &bull; GDG UI</p>
-                        <p class="exp-desc">
-                            Actively engaged in exploring modern technologies, developing developer ecosystem projects, and collaborating with campus IT communities.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Experience 2 -->
-                <div class="skill-card exp-card">
-                    <div class="exp-image">
-                        <div class="exp-slider-track">
-                            <img src="static/img/Compest 18 2.jpeg" alt="Compest 18 1">
-                            <img src="static/img/Compest 18 1.jpeg" alt="Compest 18 2">
-                            <img src="static/img/Compest 18 3.jpeg" alt="Compest 18 3">
-                        </div>
-                    </div>
-                    <div class="exp-content">
-                        <div class="exp-header">
-                            <h3>COMPEST 18</h3>
-                            <span class="exp-badge">Active Member</span>
-                        </div>
-                        <p class="exp-role">Staff UX Academy &bull; Compest 18</p>
-                        <p class="exp-desc">
-                            Designed intuitive digital interfaces for COMPFEST 18 as UX Design Staff, applying User-Centered Design (UCD) and usability principles to deliver user-friendly experiences.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Experience 3 -->
-                <div class="skill-card exp-card">
-                    <div class="exp-image">
-                        <div class="exp-slider-track">
-                            <img src="static/img/Speaker (1).jpeg" alt="Acasia Campus Expo 1">
-                            <img src="static/img/acasia.jpg" alt="Acasia Campus Expo 2">
-                            <img src="static/img/Speaker (1).jpeg" alt="Acasia Campus Expo 3">
-                        </div>
-                    </div>
-                    <div class="exp-content">
-                        <div class="exp-header">
-                            <h3>Acasia Campus Expo</h3>
-                            <span class="exp-badge">Volunteer</span>
-                        </div>
-                        <p class="exp-role">Speaker &bull; Campus Expo</p>
-                        <p class="exp-desc">
-                            Served as a speaker in a session sharing insights and experiences with participants, while simultaneously developing public speaking, presentation, and communication skills.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Experience 4 -->
-                <div class="skill-card exp-card">
-                    <div class="exp-image">
-                        <div class="exp-slider-track">
-                            <img src="static/img/Forkoma.jpg" alt="Forkoma 1">
-                            <img src="static/img/Forkoma 2.jpg" alt="Forkoma 2">
-                            <img src="static/img/Forkoma 3.jpg" alt="Forkoma 3">
-                        </div>
-                    </div>
-                    <div class="exp-content">
-                        <div class="exp-header">
-                            <h3>Forkoma UI Banten</h3>
-                            <span class="exp-badge">Volunteer</span>
-                        </div>
-                        <p class="exp-role">Mentor &bull; Campus Expo</p>
-                        <p class="exp-desc">
-                            Contribute as a volunteer in the Faculty Expo event at the University of Indonesia 2026.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -299,7 +201,7 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>&copy; 2026 Fathir. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+            <p>&copy; 2026 {{name}}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
     </footer>
 </body>
