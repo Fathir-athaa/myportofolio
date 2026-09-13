@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.models import Experience
+from main.models import Experience, Organization
 
 
 class MainTest(TestCase):
@@ -11,6 +11,12 @@ class MainTest(TestCase):
             title="Asisten Dosen PBP",
             description="Membantu mahasiswa memahami pengembangan web.",
             category="part-time",
+        )
+        self.organization = Organization.objects.create(
+            name="Himpunan Mahasiswa Fasilkom",
+            role="Staff Ahli",
+            description="Mengembangkan program kerja keilmuan.",
+            started_at="2024-01-01",
         )
 
     def test_main_url_is_accessible(self):
@@ -56,3 +62,22 @@ class MainTest(TestCase):
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
+
+    def test_organization_model(self):
+        self.assertEqual(str(self.organization), "Himpunan Mahasiswa Fasilkom")
+        self.assertTrue(self.organization.is_ongoing)
+
+    def test_organization_page(self):
+        response = self.client.get(reverse("main:show_organization"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "organization.html")
+        self.assertContains(response, self.organization.name)
+        self.assertContains(response, self.organization.role)
+        self.assertContains(response, self.organization.description)
+        self.assertContains(response, "Sedang berlangsung")
+        self.assertContains(response, f'href="{reverse("main:show_main")}"')
+
+    def test_empty_organization_page(self):
+        Organization.objects.all().delete()
+        response = self.client.get(reverse("main:show_organization"))
+        self.assertContains(response, "Belum ada organisasi yang ditambahkan.")
