@@ -3,7 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 from django.shortcuts import render
 
-from main.models import Experience
+from main.models import Experience, Organization
 
 
 def show_main(request):
@@ -24,3 +24,10 @@ def show_experience(request):
         "experience_list": Experience.objects.all(),
     }
     return render(request, "experience.html", context)
+
+def show_organization(request):
+    context = {
+        "name": "Nama Anda",  # Ganti dengan nama Anda
+        "organization_list": Organization.objects.all(),
+    }
+    return render(request, "organization.html", context)
