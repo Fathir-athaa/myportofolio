@@ -27,7 +27,7 @@ def show_experience(request):
 
 def show_organization(request):
     context = {
-        "name": "Nama Anda",  # Ganti dengan nama Anda
+        "name": "Fathir Atha Rizki Tasril",
         "organization_list": Organization.objects.all(),
     }
     return render(request, "organization.html", context)
