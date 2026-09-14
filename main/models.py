@@ -36,15 +36,20 @@ class ExperienceImage(models.Model):
         return f"Foto untuk {self.experience.title}"
 
 class Organization(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255)
-    role = models.CharField(max_length=255)
+    name = models.CharField(max_length=200)
+    role = models.CharField(max_length=100)
+    status = models.CharField(max_length=50, default="Active Member")
     description = models.TextField()
-    started_at = models.DateField()
-    ended_at = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return self.name
+    
+class OrganizationImage(models.Model):
+    organization = models.ForeignKey(Organization, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='organization_images/')
+
+    def __str__(self):
+        return f"Image for {self.organization.name}"
 
     @property
     def is_ongoing(self):
