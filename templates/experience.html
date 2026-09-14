@@ -24,27 +24,40 @@
       </div>
     </header>
 
-    <!-- HTML BAGIAN ABOUT ME -->
     <main>
       <section class="experience-section" id="experience">
         <div class="container">
-          <p class="section-kicker">Perjalanan saya sejauh ini</p>
+          <p class="section-kicker">Organizational involvement and activities</p>
           <h1>Experience</h1>
 
           <div class="experience-grid">
             {% for experience in experience_list %}
             <article class="experience-card">
-              <span class="experience-category">
-                {{ experience.get_category_display }}
-              </span>
-              <h2>{{ experience.title }}</h2>
-              <p class="experience-description">{{ experience.description }}</p>
+              <div>
+                <!-- Bagian Slider Foto -->
+                {% if experience.images.all %}
+                <div class="exp-image">
+                  <div class="exp-slider-track">
+                    {% for img in experience.images.all %}
+                    <img src="{{ img.image.url }}" alt="Experience Photo">
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
 
-              {% if experience.is_ongoing %}
-              <p class="experience-status">Sedang berlangsung</p>
-              {% else %}
-              <p class="experience-status">Selesai</p>
-              {% endif %}
+                <div class="experience-header-row">
+                  <h2>{{ experience.title }}</h2>
+                  {% if experience.is_ongoing %}
+                  <span class="experience-status">Active Member</span>
+                  {% else %}
+                  <span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Completed</span>
+                  {% endif %}
+                </div>
+                <span class="experience-category">
+                  {{ experience.get_category_display }}
+                </span>
+                <p class="experience-description">{{ experience.description }}</p>
+              </div>
             </article>
             {% empty %}
             <p class="empty-state">Belum ada pengalaman yang ditambahkan.</p>
