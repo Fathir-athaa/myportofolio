@@ -103,6 +103,44 @@ Aku pakai AI (ChatGPT/Claude) sebagai _pair programmer_, terutama di tahap draft
 
 ---
 
+# tugas 2
+
+# pertanyaan refleksif
+
+1. Alurnya kira-kira gini: begitu user ngetik URL atau klik link ke halaman portofolio baru, request itu pertama kali nyampe ke urls.py proyek (root URLconf). Tugas dia di sini cuma jadi "resepsionis" — dia cek prefix path-nya, terus kalau cocok, dia include() request itu ke urls.py punya aplikasi yang relevan, bukan langsung nentuin view. Nah, urls.py aplikasi ini yang lebih spesifik mecah path sampai ke akhir dan nyocokinnya ke satu view tertentu. Sampai di view, di situlah logic-nya jalan: view manggil model buat ambil data yang dibutuhin (misalnya Portfolio.objects.all() atau .get(id=...)), data hasil query ini biasanya berbentuk queryset/object Python. Data itu terus dibungkus dalam bentuk context (dictionary), lalu view manggil render() sambil nunjuk ke file template mana yang mau dipakai plus context-nya. Di tahap ini, template engine Django gabungin markup HTML yang ada tag {{ }} / {% %} dengan data dari context, jadi satu HTML utuh. Hasil HTML itu yang dikirim balik sebagai HTTP response ke browser, dan browser tinggal render ke layar user. Jadi urutannya: urls.py proyek → urls.py app → view → model (ambil data) → template (gabung data + markup) → balik ke view → response ke browser.
+
+2. Karena kalau data ditulis langsung di template, itu artinya kontennya nge-hardcode di markup — setiap kali ada portofolio baru yang mau ditambah, aku harus buka dan edit file HTML-nya lagi satu-satu, padahal boleh jadi data yang sama juga mau dipakai di halaman lain (misal halaman list & halaman detail). Ini gampang bikin data jadi nggak konsisten dan gampang typo karena diketik manual berkali-kali di tempat berbeda. Kalau datanya disimpan di model, ada satu source of truth — data hidup di database, bukan di markup. Efeknya ke maintainability: nambah/edit/hapus portofolio cukup lewat query atau bahkan admin panel Django, nggak perlu sentuh kode template sama sekali, dan perubahan itu otomatis kereflect ke semua tempat yang manggil data itu. Efeknya ke development: ada pemisahan tanggung jawab yang jelas — yang ngurusin logic/data (model & view) bisa kerja terpisah dari yang ngurusin tampilan (template), jadi lebih gampang di-testing, di-scale (misal portofolionya nambah jadi ratusan), dan divalidasi (tipe data, relasi field, dll dikontrol di level model, bukan ngandelin ketikan manual di HTML).
+
+3. makemigrations itu tugasnya "bikin rencana" — Django bakal bandingin kondisi models.py sekarang sama migration terakhir yang tercatat, terus kalau ada perbedaan (field baru, field dihapus, tipe data berubah, dst), dia generate file migration baru (kode Python) yang isinya instruksi perubahan skema itu. Di tahap ini, database aslinya belum berubah sama sekali, yang ada cuma file instruksi baru nangkring di folder migrations/. migrate itu baru tahap "eksekusi rencana" — perintah ini yang beneran jalanin instruksi dari file-file migration yang belum diterapkan ke database, dalam bentuk SQL kayak ALTER TABLE atau CREATE TABLE. Jadi migrate yang benar-benar mengubah struktur database di level fisik. Contoh konkretnya: misal aku mau nambahin field baru di model Project, katakanlah:
+
+class Project(models.Model):
+       ...
+       thumbnail_url = models.URLField(blank=True)
+
+Setelah nulis field itu, aku jalanin python manage.py makemigrations — Django bakal generate file baru semacam 0004_project_thumbnail_url.py yang isinya instruksi AddField. Tapi kolom thumbnail_url itu belum ada di database sungguhan sampai aku jalanin python manage.py migrate, baru di situ Django beneran nambahin kolom itu ke tabel Project di database.
+
+
+## AI Disclosure — Tugas 2
+
+Di tugas ini AI (Gemini/Claude) aku pakai lagi sebagai _pair programmer_, tapi porsinya lebih ke bagian backend Django — beda sama tugas sebelumnya yang fokusnya di eksperimen CSS/animasi.
+
+**Bagian yang kebantu AI:**
+
+- Diskusi awal soal struktur model baru — field apa aja yang relevan dan tipe data yang cocok (`CharField`, `TextField`, `DateField`, dll) buat merepresentasikan bagian portofolio yang aku pilih
+- Penjelasan alur `makemigrations` vs `migrate` pas aku masih bingung kapan harus jalanin yang mana setelah ubah model
+- Draft awal struktur `view` buat ambil data dari model dan masukin ke `context`, termasuk pola penanganan kondisi data kosong (`{% if %}` / `{% else %}` di template)
+- Saran struktur unit test — pembagian tiga skenario (URL & template kepake, data muncul kalau ada, pesan kosong muncul kalau nggak ada) pakai `TestCase` dan `self.client`
+- Bantu ngerapiin kalimat di README ini, termasuk jawaban Pertanyaan Reflektif Tugas 2
+
+**Bagian yang aku kerjain/perbaiki manual:**
+
+- **Penentuan field & validasi model** — draft awal AI kadang kasih field yang generic banget (mis. `CharField` semua tanpa `max_length` yang masuk akal atau tanpa mikirin field mana yang wajib/opsional). Aku sesuaikan sendiri field mana yang butuh `blank=True`, `null=True`, atau `max_length` spesifik biar sesuai kebutuhan data asli.
+- **Routing & named URL** — AI kasih pola umum buat `urls.py`, tapi penamaan `name=` route, penyesuaian ke `main/urls.py` yang udah ada, dan integrasinya ke navbar pakai `{% url %}` aku sesuaikan sendiri biar konsisten sama halaman lain (nggak numbrek sama nama route experience yang udah ada).
+- **Template & empty state** — struktur `{% for %}` dari AI aku sesuaikan lagi ke markup dan class CSS yang udah ada di project (biar tampilannya konsisten sama section lain), termasuk nulis ulang pesan kondisi kosong biar nggak generic ("Belum ada data" polos) tapi sesuai konteks halamannya.
+- **Unit test** — kerangka test dari AI aku jalanin, cek satu-satu mana yang gagal, terus benerin sendiri assertion yang kurang tepat (misalnya cek `response.status_code` doang tapi lupa cek `assertTemplateUsed`, atau lupa bikin test case buat kondisi data kosong).
+- **Debugging error migrasi** — sempet ada error pas `makemigrations` gara-gara ada field yang aku tambahin belakangan tanpa default value buat baris data yang udah ada; ini aku telusuri dan benerin sendiri (kasih `default=` atau jalanin migrasi tambahan), bukan langsung nyalin solusi dari AI mentah-mentah.
+
+Dalam membuat tugas ini aku masi memvalidasi apakah kode yg aku buat bener atau salah 
 
 
 
