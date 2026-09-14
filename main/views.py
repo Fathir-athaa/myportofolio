@@ -26,8 +26,9 @@ def show_experience(request):
     return render(request, "experience.html", context)
 
 def show_organization(request):
+    organizations = Organization.objects.all()
     context = {
-        "name": "Fathir Atha Rizki Tasril",
-        "organization_list": Organization.objects.all(),
+        'name': 'Fathir Atha Rizki Tasril',
+        'organization_list': organizations,
     }
-    return render(request, "organization.html", context)
+    return render(request, 'organization.html', context)

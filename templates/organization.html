@@ -27,19 +27,37 @@
     <main>
         <section class="experience-section" id="organization">
             <div class="container">
-                <p class="section-kicker">Organisasi & Keaktifan</p>
+                <p class="section-kicker">Organizational Involvement and Activities</p>
                 <h1>Organizations</h1>
+                
                 <div class="experience-grid">
                     {% for org in organization_list %}
                     <article class="experience-card">
-                        <span class="experience-category">{{ org.role }}</span>
-                        <h2>{{ org.name }}</h2>
-                        <p class="experience-description">{{ org.description }}</p>
-                        {% if org.is_ongoing %}
-                            <p class="experience-status">Sedang berlangsung</p>
-                        {% else %}
-                            <p class="experience-status">Selesai</p>
-                        {% endif %}
+                        <div>
+                            <!-- Bagian Slider Foto -->
+                            {% if org.images.all %}
+                            <div class="exp-image">
+                                <div class="exp-slider-track">
+                                    {% for img in org.images.all %}
+                                    <img src="{{ img.image.url }}" alt="{{ org.name }} Photo">
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="experience-header-row">
+                                <h2>{{ org.name }}</h2>
+                                {% if org.is_active %}
+                                <span class="experience-status">Active Member</span>
+                                {% else %}
+                                <span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Completed</span>
+                                {% endif %}
+                            </div>
+                            <span class="experience-category">
+                                {{ org.role }}
+                            </span>
+                            <p class="experience-description">{{ org.description }}</p>
+                        </div>
                     </article>
                     {% empty %}
                     <p class="empty-state">Belum ada organisasi yang ditambahkan.</p>

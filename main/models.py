@@ -39,6 +39,7 @@ class Organization(models.Model):
     name = models.CharField(max_length=200)
     role = models.CharField(max_length=100)
     status = models.CharField(max_length=50, default="Active Member")
+    is_active = models.BooleanField(default=True)
     description = models.TextField()
 
     def __str__(self):

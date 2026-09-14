@@ -17,4 +17,4 @@ class ExperienceAdmin(admin.ModelAdmin):
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     inlines = [OrganizationImageInline]
-    list_display = ('name', 'role', 'status')
+    list_display = ('name', 'role', 'status', 'is_active')
