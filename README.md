@@ -102,3 +102,9 @@ Aku pakai AI (ChatGPT/Claude) sebagai _pair programmer_, terutama di tahap draft
 - **Aksesibilitas dasar** — nambahin `alt` text deskriptif di tiap `<img>` (termasuk gambar-gambar di slider Experience) dan `aria-label` di social icon button, yang di draft awal AI kosong atau generic.
 
 ---
+
+
+
+
+
+

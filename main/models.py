@@ -1,6 +1,3 @@
-from django.db import models
-
-# Create your models here.
 import uuid
 from django.db import models
 
@@ -45,13 +42,13 @@ class Organization(models.Model):
     def __str__(self):
         return self.name
     
+    @property
+    def is_ongoing(self):
+        return self.is_active
+
 class OrganizationImage(models.Model):
     organization = models.ForeignKey(Organization, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='organization_images/')
 
     def __str__(self):
         return f"Image for {self.organization.name}"
-
-    @property
-    def is_ongoing(self):
-        return self.ended_at is None

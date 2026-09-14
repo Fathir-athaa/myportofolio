@@ -16,7 +16,6 @@ class MainTest(TestCase):
             name="Himpunan Mahasiswa Fasilkom",
             role="Staff Ahli",
             description="Mengembangkan program kerja keilmuan.",
-            started_at="2024-01-01",
         )
 
     def test_main_url_is_accessible(self):

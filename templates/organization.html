@@ -47,10 +47,10 @@
 
                             <div class="experience-header-row">
                                 <h2>{{ org.name }}</h2>
-                                {% if org.is_active %}
-                                <span class="experience-status">Active Member</span>
+                                {% if org.is_ongoing %}
+                                    <span class="experience-status">Sedang berlangsung</span>
                                 {% else %}
-                                <span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Completed</span>
+                                    <span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Selesai</span>
                                 {% endif %}
                             </div>
                             <span class="experience-category">
