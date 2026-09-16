@@ -1,34 +1,119 @@
-from django.shortcuts import render
-
 # Create your views here.
-from django.shortcuts import render
-
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.core import serializers
+from django.http import HttpResponse
 from main.models import Experience, Organization
-
+from main.forms import ExperienceForm, OrganizationForm
 
 def show_main(request):
+    """Menampilkan halaman utama portofolio."""
     context = {
-        "name": "Fathir Atha Rizki Tasril",
-        "npm": "2506656734",
-        "study_program": "S1 Sistem Informasi",
-        "bio": (
-            "An Information Systems student specializing in systems analysis, software engineering, and data exploration. Possesses a strong technical foundation and a logical mindset to translate complex requirements into structured, efficient, and impactful digital solutions."
-        ),
+        'name': 'Portofolio Saya',
     }
-    return render(request, "index.html", context)
-
+    return render(request, 'index.html', context)
 
 def show_experience(request):
+    json_response = get_experience_json(request)
+    experiences = serializers.deserialize("json", json_response.content.decode("utf-8"))
+    experience_list = [exp.object for exp in experiences]
+
+    form = ExperienceForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Experience baru berhasil ditambahkan!")
+        return redirect('main:show_experience')
+
     context = {
-        "name": "Fathir Atha Rizki Tasril",
-        "experience_list": Experience.objects.all(),
+        'name': 'Portofolio Saya',
+        'experience_list': experience_list,
+        'form': form,
+        'title_query': request.GET.get("title", "").strip(),
     }
-    return render(request, "experience.html", context)
+    return render(request, 'experience.html', context)
+
 
 def show_organization(request):
-    organizations = Organization.objects.all()
+    name_query = request.GET.get("name", "").strip()
+    organization_list = Organization.objects.all()
+    if name_query:
+        organization_list = organization_list.filter(name__icontains=name_query)
+
+    form = OrganizationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect('main:show_organization')
+
     context = {
-        'name': 'Fathir Atha Rizki Tasril',
-        'organization_list': organizations,
+        'name': 'Portofolio Saya',
+        'organization_list': organization_list,
+        'form': form,
+        'name_query': name_query,
     }
     return render(request, 'organization.html', context)
+
+def add_experience(request):
+    form = ExperienceForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect('main:show_experience')
+    context = {'form': form}
+    return render(request, 'experience_form.html', context)
+
+def add_organization(request):
+    form = OrganizationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect('main:show_organization')
+    context = {'form': form}
+    return render(request, 'organization_form.html', context)
+
+def get_experience_json(request):
+    title_query = request.GET.get("title", "").strip()
+    experiences = Experience.objects.all().order_by('-started_at')
+
+    if title_query:
+        experiences = experiences.filter(title__icontains=title_query)
+
+    experience_json = serializers.serialize("json", experiences)
+    return HttpResponse(experience_json, content_type="application/json")
+
+
+def get_experience_xml(request):
+    experiences = Experience.objects.all().order_by('-started_at')
+    experience_xml = serializers.serialize("xml", experiences)
+    return HttpResponse(experience_xml, content_type="application/xml")
+
+
+def get_organization_json(request):
+    name_query = request.GET.get("name", "").strip()
+    organizations = Organization.objects.all()
+
+    if name_query:
+        organizations = organizations.filter(name__icontains=name_query)
+
+    organization_json = serializers.serialize("json", organizations)
+    return HttpResponse(organization_json, content_type="application/json")
+
+
+def get_organization_xml(request):
+    organizations = Organization.objects.all()
+    organization_xml = serializers.serialize("xml", organizations)
+    return HttpResponse(organization_xml, content_type="application/xml")
+
+def delete_experience(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    if request.method == "POST":
+        experience.delete()
+        messages.success(request, "Experience berhasil dihapus!")
+        return redirect('main:show_experience')
+    return redirect('main:show_experience')
+
+
+def delete_organization(request, organization_id):
+    organization = get_object_or_404(Organization, pk=organization_id)
+    if request.method == "POST":
+        organization.delete()
+        messages.success(request, "Organization berhasil dihapus!")
+        return redirect('main:show_organization')
+    return redirect('main:show_organization')

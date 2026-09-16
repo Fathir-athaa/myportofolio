@@ -1,79 +1,67 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Experience - {{ name }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/static/css/style.css" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="container">
-        <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
-        <nav>
-          <a href="{% url 'main:show_main' %}">Profile</a>
-          <a href="{% url 'main:show_experience' %}">Experience</a>
-          <a href="{% url 'main:show_organization' %}">Organization</a>
-        </nav>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta %}
+  <title>Experience - {{ name }}</title>
+{% endblock meta %}
+
+{% block content %}
+<main>
+  <section class="experience-section" id="experience">
+    <div class="container">
+      <p class="section-kicker">Organizational involvement and activities</p>
+
+      <div class="project-header">
+        <h1>Experience</h1>
+        <a href="{% url 'main:add_experience' %}" class="button project-add-button">
+          <span aria-hidden="true">+</span> Tambah Experience
+        </a>
       </div>
-    </header>
 
-    <main>
-      <section class="experience-section" id="experience">
-        <div class="container">
-          <p class="section-kicker">Organizational involvement and activities</p>
-          <h1>Experience</h1>
+      <form method="get" action="{% url 'main:show_experience' %}" class="project-search">
+        <input type="search" name="title" value="{{ title_query }}"
+                placeholder="Cari berdasarkan judul experience"
+                class="project-search__input" aria-label="Cari experience">
+        <button type="submit" class="button">Cari</button>
+      </form>
 
-          <div class="experience-grid">
-            {% for experience in experience_list %}
-            <article class="experience-card">
-              <div>
-                <!-- Bagian Slider Foto -->
-                {% if experience.images.all %}
-                <div class="exp-image">
-                  <div class="exp-slider-track">
-                    {% for img in experience.images.all %}
-                    <img src="{{ img.image.url }}" alt="Experience Photo">
-                    {% endfor %}
-                  </div>
-                </div>
-                {% endif %}
-
-                <div class="experience-header-row">
-                    <h2>{{ experience.title }}</h2>
-                    
-                    {% if experience.is_ongoing %}
-                        <span class="experience-status">Sedang berlangsung</span>
-                    {% else %}
-                        <span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Selesai</span>
-                    {% endif %}
-                </div>
-                <span class="experience-category">
-                  {{ experience.get_category_display }}
-                </span>
-                <p class="experience-description">{{ experience.description }}</p>
+      <div class="experience-grid">
+        {% for experience in experience_list %}
+        <article class="experience-card">
+          <div>
+            {% if experience.images.all %}
+            <div class="exp-image">
+              <div class="exp-slider-track">
+                {% for img in experience.images.all %}
+                <img src="{{ img.image.url }}" alt="Experience Photo">
+                {% endfor %}
               </div>
-            </article>
-            {% empty %}
-            <p class="empty-state">Belum ada pengalaman yang ditambahkan.</p>
-            {% endfor %}
-          </div>
-        </div>
-      </section>
-    </main>
+            </div>
+            {% endif %}
 
-    <footer class="site-footer">
-      <div class="container">
-        <p>
-          &copy; 2026 {{name}}. Fakultas Ilmu Komputer, Universitas Indonesia.
-        </p>
+            <div class="experience-header-row">
+              <h2>{{ experience.title }}</h2>
+              {% if experience.is_ongoing %}
+                <span class="experience-status">Sedang berlangsung</span>
+              {% else %}
+                <span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Selesai</span>
+              {% endif %}
+            </div>
+            <span class="experience-category">{{ experience.get_category_display }}</span>
+            <p class="experience-description">{{ experience.description }}</p>
+
+            {% include "components/experience_delete_modal.html" with experience=experience %}
+          </div>
+        </article>
+        {% empty %}
+          {% if title_query %}
+            <p class="empty-state">Tidak ada experience dengan judul tersebut.</p>
+          {% else %}
+            <p class="empty-state">Belum ada pengalaman yang ditambahkan.</p>
+          {% endif %}
+        {% endfor %}
       </div>
-    </footer>
-  </body>
-</html>
+    </div>
+  </section>
+</main>
+{% endblock content %}
