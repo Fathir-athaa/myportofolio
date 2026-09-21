@@ -9,6 +9,7 @@ urlpatterns = [
     path("", show_main, name="show_main"),
     path("experience/", show_experience, name="show_experience"),
     path("experience/add/", add_experience, name="add_experience"),
+    path("experience/<uuid:experience_id>/edit/", edit_experience, name="edit_experience"),
     path("organization/", show_organization, name="show_organization"),
     path("organization/add/", add_organization, name="add_organization"),
     path("organization/<int:organization_id>/edit/", edit_organization, name="edit_organization"),
