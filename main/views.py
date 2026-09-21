@@ -35,13 +35,14 @@ def show_experience(request):
 
 def show_organization(request):
     name_query = request.GET.get("name", "").strip()
-    organization_list = Organization.objects.all()
-    if name_query:
-        organization_list = organization_list.filter(name__icontains=name_query)
+    json_response = get_organization_json(request)
+    organizations = serializers.deserialize("json", json_response.content.decode("utf-8"))
+    organization_list = [org.object for org in organizations]
 
     form = OrganizationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
+        messages.success(request, "Organization baru berhasil ditambahkan!")
         return redirect('main:show_organization')
 
     context = {
@@ -60,6 +61,20 @@ def add_experience(request):
     context = {'form': form}
     return render(request, 'experience_form.html', context)
 
+def edit_experience(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    form = ExperienceForm(request.POST or None, instance=experience)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Experience berhasil diperbarui!")
+        return redirect('main:show_experience')
+    context = {
+        'name': 'Portofolio Saya',
+        'form': form,
+        'experience': experience,
+    }
+    return render(request, 'experience_edit_form.html', context)
+
 def add_organization(request):
     form = OrganizationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -67,6 +82,20 @@ def add_organization(request):
         return redirect('main:show_organization')
     context = {'form': form}
     return render(request, 'organization_form.html', context)
+
+def edit_organization(request, organization_id):
+    organization = get_object_or_404(Organization, pk=organization_id)
+    form = OrganizationForm(request.POST or None, instance=organization)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Organization berhasil diperbarui!")
+        return redirect('main:show_organization')
+    context = {
+        'name': 'Portofolio Saya',
+        'form': form,
+        'organization': organization,
+    }
+    return render(request, 'organization_edit_form.html', context)
 
 def get_experience_json(request):
     title_query = request.GET.get("title", "").strip()
