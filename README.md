@@ -144,5 +144,112 @@ Dalam membuat tugas ini aku masi memvalidasi apakah kode yg aku buat bener atau 
 
 
 
+# Tugas 3 
+
+## Fitur
+- Fungsionalitas CRUD (Create, Read, Update, Delete) — Penambahan fitur untuk menambah, melihat, mengubah, dan menghapus entri pengalaman (Experience) dan organisasi (Organization) secara dinamis tanpa perlu mengubah file HTML secara manual.
+
+- Data Delivery API — Menyediakan endpoint (URL routing) untuk mengembalikan data portofolio dalam format JSON dan XML, yang bisa diakses secara terpisah oleh klien atau dites menggunakan Postman.
+   
+- Django Forms dengan Validasi — Penggunaan form bawaan Django untuk menangani input user secara aman (termasuk validasi tipe data) baik saat pembuatan data baru maupun pengeditan data.
+
+- Keamanan Data (UUID & CSRF) — Penggunaan UUID (Universally Unique Identifier) sebagai primary key untuk mengamankan ID objek agar tidak mudah ditebak, serta proteksi CSRF pada setiap form pengiriman data.
+
+- Interactive Modals — Penggunaan modal HTML/CSS khusus untuk konfirmasi penghapusan data (experience_delete_modal.html, organization_delete_modal.html) demi mencegah data terhapus secara tidak sengaja.
+
+## Tech Stack
+- Backend / Web Framework: Django (Python)
+- Database: SQLite3 (db.sqlite3)
+- Frontend: HTML5, CSS3, Django Templates
+- Data Formats: JSON, XML
+- Testing API: Postman
+
+## Strukutur proyek yang baru
+myportofolio/
+├── main/
+├── organization_images/
+├── portofolio/
+│   ├── __pycache__/
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── views.py
+│   └── wsgi.py
+├── static/
+├── staticfiles/
+├── templates/
+│   ├── components/
+│   │   ├── experience_delete_modal.html
+│   │   └── organization_delete_modal.html
+│   ├── base.html
+│   ├── experience_edit_form.html
+│   ├── experience_form.html
+│   ├── experience.html
+│   ├── index.html
+│   ├── organization_edit_form.html
+│   ├── organization_form.html
+│   └── organization.html
+├── .env
+├── .env.prod
+├── .gitignore
+├── db.sqlite3
+├── experience.json
+├── manage.py
+├── README.md
+└── requirements.txt
+
+# Progres Pengerjaan
+Hari 1
+- Sesi Pagi — Melakukan migrasi database untuk mengubah Primary Key model menjadi UUID. Bikin forms.py menggunakan ModelForm dari Django agar form input HTML tidak perlu dibuat manual satu-satu.
+
+- Sesi Siang — Menyusun views.py untuk fungsionalitas Create dan Read. Membangun kerangka HTML form (experience_form.html, organization_form.html) yang memanfaatkan tag {{ form.as_p }} beserta token CSRF.Sesi Malam — Mengerjakan routing di urls.py dan menyesuaikan tautan tombol di halaman utama agar bisa mengarahkan user ke halaman pembuatan entri baru.
+
+Hari 2
+- Sesi Pagi — Membangun fungsionalitas Update dan Delete. Menulis logika untuk mengambil instance data spesifik berdasarkan UUID di views, lalu melemparnya kembali ke dalam form edit (experience_edit_form.html, organization_edit_form.html).
+
+- Sesi Siang — Merancang dan styling modal konfirmasi hapus (_delete_modal.html) di folder components/ agar user experience lebih baik, alih-alih langsung menghapus data saat tombol di-klik.
+Sesi Malam — Uji coba CRUD secara menyeluruh via browser. Melakukan debugging pada isu saat data di-update namun field tertentu menjadi kosong.
+
+Hari 3
+- Sesi Pagi — Mengerjakan fitur Data Delivery. Membuat fungsi di views.py yang me-return HttpResponse dengan menyematkan serializers dari Django untuk mengubah data QuerySet menjadi format XML dan JSON.
+
+- Sesi Siang — Mengonfigurasi path URL baru (/xml/, /json/, /xml/[id]/, /json/[id]/) dan melakukan testing endpoint menggunakan Postman untuk memastikan response datanya valid. Mem-backup data format .json untuk referensi eksternal (experience.json).
+
+- Sesi Malam — Finalisasi kode, merapikan struktur folder template, dan menulis pelaporan README.md untuk tugas 3 ini.
+
+## Pertanyaan Reflektif
+
+Q1:
+Jelaskan mengapa kita menggunakan ModelForm Django alih-alih membuat formulir HTML secara manual. Selain itu, jelaskan mengapa kita harus menambahkan {% csrf_token %} pada formulir-formulir tersebut!
+A1:
+Menurut saya, cara itu jauh lebih praktis. Menulis kode HTML secara manual merupakan proses yang repetitif, sedangkan data dari Django sudah melalui proses validasi yang lebih baik.
+
+Q2:
+Pada Tutorial 03, kita membahas format data JSON dan XML. Mengapa JSON lebih disukai dalam pengembangan aplikasi web modern dibandingkan dengan XML?
+A1:
+Saya perlu melakukan pencarian di Google untuk hal ini dan membandingkannya dengan pengetahuan saya. Sejauh pemahaman saya, JSON jauh lebih sederhana untuk digunakan.
+
+Q3:
+Jelaskan alur yang terjadi saat Anda menggunakan fungsi *view* untuk mengembalikan data portofolio dalam format JSON. Mengapa kita perlu melakukan proses serialisasi pada model Django sebelum mengembalikan data tersebut?
+A3:
+Klien mengirimkan permintaan ke `views.py`, lalu basis data memberikan respons. (sejujurnya, saya masih berusaha memahaminya)
+
+## AI Disclosure
+Bagian yang dibantu AI:
+
+- Mendiskusikan best practices perbandingan antara auto-increment ID standar vs UUID pada model Django, yang akhirnya memutuskan aku pakai UUID.
+- Membantu menjelaskan cara kerja serializers.serialize() di Django ketika aku stuck mencari cara merubah QuerySet menjadi format XML/JSON tanpa harus me-loop manual datanya.
+- Memberikan snippet cara menangkap UUID melalui endpoint di urls.py (<uuid:id>)
+- Menyunting draft progres pengerjaan harian agar lebih sistematis dan mudah dibaca.
+
+## Bagian yang aku kerjain/perbaiki manual:
+
+- Pembuatan form & Modals — Integrasi antara Django Forms dengan layout CSS/HTML custom yang sudah kubuat di tugas 1 (seperti form input dan delete modal) kuatur manual, tidak menggunakan template bawaan AI yang biasanya memakai bootstrap.
+
+- Logika View & Error Handling — Logika pada views saat mengembalikan object atau 404 (via get_object_or_404), serta cara menyuntikkan id ke masing-masing tombol edit/hapus pada iterasi data di template.
+
+- Testing via Postman — Instalasi, eksekusi request URL (GET ke endpoint /xml dan /json), dan verifikasi bahwa data yang aku input tampil dengan akurat aku tes sendiri secara lokal.
+
 
 
