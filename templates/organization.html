@@ -9,7 +9,7 @@
         <div class="project-header">
             <h1>Organizations</h1>
             <a href="{% url 'main:add_organization' %}" class="button project-add-button">
-                <span aria-hidden="true">+</s> Tambah Organization
+                <span aria-hidden="true">+</span> Tambah Organization
             </a>
         </div>
 
@@ -45,7 +45,10 @@
                 <span class="experience-category">{{ org.role }}</span>
                 <p class="experience-description">{{ org.description }}</p>
 
-            {% include "components/organization_delete_modal.html" with org=org %}
+            <div class="project-actions">
+                <a href="{% url 'main:edit_organization' org.id %}" class="button">Edit</a>
+                {% include "components/organization_delete_modal.html" with org=org %}
+            </div>
         </div>
         </article>
         {% empty %}

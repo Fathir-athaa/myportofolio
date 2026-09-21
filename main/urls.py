@@ -1,7 +1,7 @@
 from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
-from main.views import show_main, show_experience, show_organization, add_experience, add_organization,get_experience_json, get_experience_xml, get_organization_json, get_organization_xml, delete_experience, delete_organization
+from main.views import show_main, show_experience, show_organization, add_experience, edit_experience, add_organization, edit_organization, get_experience_json, get_experience_xml, get_organization_json, get_organization_xml, delete_experience, delete_organization
 
 app_name = "main"
 
@@ -11,6 +11,7 @@ urlpatterns = [
     path("experience/add/", add_experience, name="add_experience"),
     path("organization/", show_organization, name="show_organization"),
     path("organization/add/", add_organization, name="add_organization"),
+    path("organization/<int:organization_id>/edit/", edit_organization, name="edit_organization"),
 
     # Data delivery
     path("api/experience/", get_experience_json, name="get_experience_json"),

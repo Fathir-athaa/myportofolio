@@ -54,3 +54,4 @@ class OrganizationImage(models.Model):
         return f"Image for {self.organization.name}"
 
 #test
+#gua
