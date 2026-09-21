@@ -803,7 +803,7 @@ header {
   width: 100%;
   max-width: 100%;
   margin-top: 1.5rem;
-}
+}t
 
 .form-group {
   margin-bottom: 1.25rem;
@@ -855,7 +855,13 @@ header {
 }
 
 .button-secondary {
-  background: var(--ink);
+  background: #33050e;
+  color: #ffffff;
+  border: 1px solid #af0821;
+}
+
+.button-secondary:hover {
+  background: #af0821;
 }
 
 .project-header {
