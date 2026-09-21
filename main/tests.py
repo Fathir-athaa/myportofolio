@@ -80,6 +80,3 @@ class MainTest(TestCase):
         Organization.objects.all().delete()
         response = self.client.get(reverse("main:show_organization"))
         self.assertContains(response, "Belum ada organisasi yang ditambahkan.")
-
-#test
-#guah

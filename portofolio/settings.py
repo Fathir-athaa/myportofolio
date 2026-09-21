@@ -155,4 +155,8 @@ MAILERS = {
     },
 }
 
-CSRF_TRUSTED_ORIGINS = ["https://fathir-atha-myportofolio.pws.cs.ui.ac.id/"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://fathir-atha-myportofolio.pws.cs.ui.ac.id",
+]
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
