@@ -1,5 +1,6 @@
 django~=5.0
 gunicorn
+Pillow
 psycopg2-binary
 python-dotenv
 whitenoise
