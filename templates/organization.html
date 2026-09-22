@@ -8,9 +8,11 @@
 
         <div class="project-header">
             <h1>Organizations</h1>
+            {% if user.is_superuser %}
             <a href="{% url 'main:add_organization' %}" class="button project-add-button">
                 <span aria-hidden="true">+</span> Tambah Organization
             </a>
+            {% endif %}
         </div>
 
         <form method="get" action="{% url 'main:show_organization' %}" class="project-search">
@@ -46,8 +48,11 @@
                 <p class="experience-description">{{ org.description }}</p>
 
             <div class="project-actions">
+                {% include "components/organization_star.html" with org=org %}
+                {% if user.is_superuser %}
                 <a href="{% url 'main:edit_organization' org.id %}" class="button">Edit</a>
                 {% include "components/organization_delete_modal.html" with org=org %}
+                {% endif %}
             </div>
         </div>
         </article>

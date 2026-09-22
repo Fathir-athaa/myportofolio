@@ -1,7 +1,12 @@
 from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
-from main.views import show_main, show_experience, show_organization, add_experience, edit_experience, add_organization, edit_organization, get_experience_json, get_experience_xml, get_organization_json, get_organization_xml, delete_experience, delete_organization
+from main.views import (
+    show_main, show_experience, show_organization, add_experience, edit_experience,
+    add_organization, edit_organization, get_experience_json, get_experience_xml,
+    get_organization_json, get_organization_xml, delete_experience, delete_organization,
+    register, login_user, logout_user, toggle_star_experience, toggle_star_organization,
+)
 
 app_name = "main"
 
@@ -13,8 +18,10 @@ urlpatterns = [
     path("organization/", show_organization, name="show_organization"),
     path("organization/add/", add_organization, name="add_organization"),
     path("organization/<int:organization_id>/edit/", edit_organization, name="edit_organization"),
+    path("register/", register, name="register"),
+    path("login/", login_user, name="login"),
+    path("logout/", logout_user, name="logout"),
 
-    # Data delivery
     path("api/experience/", get_experience_json, name="get_experience_json"),
     path("api/experience/xml/", get_experience_xml, name="get_experience_xml"),
     path("api/organization/", get_organization_json, name="get_organization_json"),
@@ -23,6 +30,8 @@ urlpatterns = [
     # Delete
     path("experience/<uuid:experience_id>/delete/", delete_experience, name="delete_experience"),
     path("organization/<int:organization_id>/delete/", delete_organization, name="delete_organization"),
+        path("experience/<uuid:experience_id>/star/", toggle_star_experience, name="toggle_star_experience"),
+    path("organization/<int:organization_id>/star/", toggle_star_organization, name="toggle_star_organization"),
 ]
 
 if settings.DEBUG:
