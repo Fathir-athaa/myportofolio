@@ -17,25 +17,19 @@ def is_editor_user(user):
 
 
 def can_edit_data(user):
-    """
-    Hak mengubah (update) data dimiliki oleh Editor MAUPUN pemilik
-    portofolio (superuser). Dipakai di view edit_experience/edit_organization.
-    """
     return user.is_authenticated and (user.is_superuser or is_editor_user(user))
 
 
 def can_create_or_delete_data(user):
-    """
-    Hak membuat (create) dan menghapus (delete) data HANYA dimiliki oleh
-    pemilik portofolio (superuser). Editor tidak diberi hak ini.
-    """
     return user.is_authenticated and user.is_superuser
 
 def show_main(request):
-    """Menampilkan halaman utama portofolio."""
     last_login = request.COOKIES.get('last_login', 'Belum ada sesi login / Cookie tidak ditemukan')
     context = {
-        'name': 'Portofolio Saya',
+        'name': 'Fathir Atha Rizki Tasril',
+        'npm': '2506656734',
+        'study_program': 'S1 Sistem Informasi',
+        'bio': 'Mahasiswa Ilmu Komputer Universitas Indonesia yang tertarik pada pengembangan perangkat lunak.',
         'last_login': last_login,
     }
     return render(request, 'index.html', context)
@@ -52,7 +46,7 @@ def show_experience(request):
         return redirect('main:show_experience')
 
     context = {
-        'name': 'Portofolio Saya',
+        'name': 'Fathir Atha Rizki Tasril',
         'experience_list': experience_list,
         'form': form,
         'title_query': request.GET.get("title", "").strip(),
@@ -73,7 +67,7 @@ def show_organization(request):
         return redirect('main:show_organization')
 
     context = {
-        'name': 'Portofolio Saya',
+        'name': 'Fathir Atha Rizki Tasril',
         'organization_list': organization_list,
         'form': form,
         'name_query': name_query,
@@ -102,7 +96,7 @@ def edit_experience(request, experience_id):
         messages.success(request, "Experience berhasil diperbarui!")
         return redirect('main:show_experience')
     context = {
-        'name': 'Portofolio Saya',
+        'name': 'Fathir Atha Rizki Tasril',
         'form': form,
         'experience': experience,
     }
@@ -130,7 +124,7 @@ def edit_organization(request, organization_id):
         messages.success(request, "Organization berhasil diperbarui!")
         return redirect('main:show_organization')
     context = {
-        'name': 'Portofolio Saya',
+        'name': 'Fathir Atha Rizki Tasril',
         'form': form,
         'organization': organization,
     }
@@ -221,7 +215,7 @@ def register(request):
         messages.success(request, "Akun berhasil dibuat. Silakan login.")
         return redirect("main:login")
     context = {
-        "name": "Portofolio Saya",
+        "name": "Fathir Atha Rizki Tasril",
         "form": form,
     }
     return render(request, "register.html", context)
@@ -235,7 +229,7 @@ def login_user(request):
         response.set_cookie('last_login', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         return response
     context = {
-        "name": "Portofolio Saya",
+        "name": "Fathir Atha",
         "form": form,
     }
     return render(request, "login.html", context)
