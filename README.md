@@ -253,3 +253,87 @@ Bagian yang dibantu AI:
 
 
 
+# Tugas 4
+
+## Fitur
+
+- **Sistem Otorisasi Berbasis Peran (Role-Based Authorization)** — Menerapkan 4 tingkat hak akses (Pengunjung tanpa login, Pengguna biasa, Editor, Pemilik portofolio/superuser) yang membatasi siapa yang boleh membaca, memberi *star*, mengubah, atau menghapus data Experience dan Organization.
+
+- **Peran Editor via Django Group & Permission** — Membuat *Group* "Editor" lewat *data migration* Django yang otomatis diberi *permission* `change_experience` dan `change_organization` saja (tanpa `add_*`/`delete_*`), sehingga Editor bisa mengubah data tapi tidak bisa membuat atau menghapusnya. Penetapan user ke dalam grup ini dilakukan lewat Django Admin.
+
+- **Proteksi Server-Side (bukan sekadar UI)** — Setiap *view* yang mengubah data (create/update/delete) dilindungi dua lapis: `@login_required` untuk mengarahkan pengunjung yang belum login ke halaman `/login/`, dan pengecekan *permission* (`can_edit_data`, `can_create_or_delete_data`) yang melempar `PermissionDenied` (403 Forbidden) kalau user sudah login tapi tidak punya hak.
+
+- **Context Processor Kustom** — Membuat `main/context_processors.py` yang menyuntikkan variabel `is_editor` ke *semua* template secara global (mirip cara Django menyuntikkan `user` lewat *auth context processor*), supaya template bisa menampilkan/menyembunyikan tombol tanpa perlu mengirim variabel itu manual di tiap `view`.
+
+- **UI Adaptif per Peran** — Tombol "Tambah" hanya muncul untuk superuser, tombol "Edit" muncul untuk superuser *dan* Editor, tombol "Hapus" hanya untuk superuser, sementara tombol *Star* tetap terlihat untuk siapa pun (tapi memaksa login kalau diklik saat belum login). Navbar juga menampilkan label peran (`Owner`/`Editor`/`User`) di samping username untuk memudahkan pengujian manual.
+
+- **Fitur Star yang Sudah Ada Sejak Tutorial 4 Diverifikasi Ulang** — Relasi `ManyToManyField` ke model `User` (`starred_by`) pada `Experience` dan `Organization`, beserta *view* `toggle_star` (POST + `{% csrf_token %}`) yang membatasi maksimal satu *star* per pengguna dan menampilkan jumlah total *star*, sudah ada dari implementasi Tutorial 4 dan dipastikan tetap berfungsi normal setelah penambahan sistem peran.
+
+- **Keamanan Endpoint API** — Endpoint `/api/experience/` dan `/api/organization/` tetap publik (bisa dibaca tanpa login), tapi memakai `use_natural_foreign_keys=True` supaya relasi `starred_by` tampil sebagai *username*, bukan *id* database mentah — mencegah kebocoran informasi internal.
+
+## Tech Stack
+
+Tidak ada penambahan *dependency* baru di tugas ini — tetap menggunakan Django (Python) dan SQLite3 seperti Tugas 3, ditambah pemanfaatan modul bawaan `django.contrib.auth` (`Group`, `Permission`) untuk sistem otorisasi.
+
+## Struktur Proyek yang Diperbarui
+
+myportofolio/
+├── main/
+│ ├── migrations/
+│ │ ├── 0001_initial.py
+│ │ ├── 0002_experience_starred_by_organization_starred_by.py
+│ │ └── 0003_create_editor_group.py # BARU — data migration Group Editor
+│ ├── context_processors.py # BARU — expose is_editor ke semua template
+│ ├── admin.py
+│ ├── forms.py
+│ ├── models.py
+│ ├── urls.py
+│ └── views.py # DIUBAH — helper role-check & permission guard
+├── portofolio/
+│ └── settings.py # DIUBAH — daftarkan context processor baru
+├── templates/
+│ ├── base.html # DIUBAH — badge peran di navbar
+│ ├── experience.html # DIUBAH — visibility tombol per peran
+│ └── organization.html # DIUBAH — visibility tombol per peran
+└── ...
+
+
+## Progres Pengerjaan
+
+**Hari 1**
+
+- Sesi Pagi — Menganalisis ulang target tugas dan memetakan matriks hak akses 4 peran (baca, *star*, ubah, buat/hapus) ke dalam kebutuhan teknis: siapa butuh `login_required`, siapa butuh pengecekan *permission* tambahan.
+- Sesi Siang — Membuat `main/context_processors.py` untuk *flag* `is_editor`, mendaftarkannya di `TEMPLATES['OPTIONS']['context_processors']` pada `settings.py`, dan menulis *data migration* `0003_create_editor_group.py` yang membuat *Group* "Editor" beserta *permission*-nya secara otomatis saat `migrate` dijalankan.
+- Sesi Sore — Menulis tiga fungsi *helper* di `views.py` (`is_editor_user`, `can_edit_data`, `can_create_or_delete_data`) dan menerapkannya ke enam *view*: `add_experience`, `edit_experience`, `delete_experience`, `add_organization`, `edit_organization`, `delete_organization`.
+
+**Hari 2**
+
+- Sesi Pagi — Mengubah `experience.html`, `organization.html`, dan `base.html` supaya tombol Edit/Tambah/Hapus dan badge peran di navbar menyesuaikan status login dan grup pengguna.
+- Sesi Siang — Menjalankan `python manage.py migrate` untuk menerapkan *migration* Editor, membuat beberapa akun uji (pengguna biasa, editor, superuser) lewat `/register/` dan Django Admin (`/admin/`), lalu menetapkan salah satu akun ke Group "Editor".
+- Sesi Sore — Melakukan pengujian manual menyeluruh untuk **keempat peran** secara bergantian (mode Incognito untuk tiap akun): mengecek visibilitas tombol di UI, mencoba akses langsung `/experience/add/`, `/edit/`, dan `/delete/` lewat *address bar* untuk memastikan proteksi *server-side* benar-benar menolak (403 Forbidden) — bukan cuma menyembunyikan tombol di tampilan.
+- Sesi Malam — Menemukan dan memperbaiki dua bug kecil di luar cakupan otorisasi: (1) halaman utama tidak menampilkan NPM/Program Studi/Bio karena `view show_main` belum mengirim variabel itu ke *context*, dan (2) karakter *backtick* (`` ` ``) tersangkut di `index.html` yang menyebabkan simbol aneh muncul di tampilan. Commit dan push final ke GitHub dengan pesan *commit* deskriptif per perubahan (`feat:`, `fix:`, `chore:`).
+
+
+## AI Disclosure
+
+Di tugas ini aku pakai AI (Claude) sebagai *pair programmer* untuk topik yang relatif baru buatku — sistem *permission* dan *Group* di Django — sambil tetap coba pahami dan verifikasi sendiri tiap bagian sebelum dipakai.
+
+**Bagian yang dibantu AI:**
+
+- Pola *data migration* (`RunPython` dengan fungsi *reverse*) untuk membuat *Group* "Editor" secara otomatis — ini konsep yang belum pernah aku pakai sebelumnya.
+- Desain fungsi *helper* di `views.py` (`is_editor_user`, `can_edit_data`, `can_create_or_delete_data`) dan pola *context processor* kustom (`role_flags`) supaya variabel `is_editor` tersedia di semua template tanpa dikirim manual di tiap *view*.
+- Penjelasan konsep beda "redirect ke login" (302, belum login) vs "403 Forbidden" (sudah login tapi tidak berhak), termasuk *checklist* skenario pengujian 4 peran yang aku pakai sebagai panduan.
+- Bantu melacak akar masalah saat *debugging* — misalnya error `ImproperlyConfigured` waktu aku tidak sengaja klik tombol "Run" di VS Code untuk `views.py` (bukan lewat `manage.py runserver`), dan dua bug kecil di luar topik otorisasi (NPM tidak muncul di halaman utama, karakter *backtick* nyangkut di `index.html`).
+
+**Bagian yang aku kerjain/verifikasi sendiri:**
+
+- Analisis awal terhadap kode `views.py`, `models.py`, dan template dari Tutorial 4, untuk memetakan bagian mana yang sudah memenuhi target tugas (misalnya `starred_by` dan `toggle_star` ternyata sudah ada, jadi tidak perlu dibuat ulang) dan mana yang masih kurang (peran Editor).
+
+- **Keputusan *permission* final** — Aku sendiri yang memutuskan dan memverifikasi lewat `python manage.py shell` bahwa *Group* "Editor" di database beneran cuma berisi `change_experience` dan `change_organization`, tidak lebih.
+- **Penerapan ke tiap *view* & template** — Aku pasang sendiri pengecekan *helper* itu ke enam *view* (`add_experience`, `edit_experience`, `delete_experience`, `add_organization`, `edit_organization`, `delete_organization`) dan sesuaikan sendiri logika `{% if %}` di `experience.html`, `organization.html`, `base.html` biar tampilannya konsisten.
+- **Eksekusi & penetapan Group lewat Django Admin** — Proses klik demi klik (pilih user, pindahkan grup dari kolom kiri ke kanan, Save) aku lakukan sendiri di `/admin/`, termasuk sempat salah klik checkbox user alih-alih klik nama usernya, dan aku sadari sendiri kesalahannya.
+- **Pengujian manual menyeluruh** — Login-logout bergantian dengan banyak akun berbeda (Incognito Window), ketik URL manual satu-satu di *address bar* untuk pastikan proteksi *server-side* beneran nolak (403), bukan cuma tombolnya disembunyikan di UI. Beberapa kali hasil awal tidak sesuai ekspektasi karena aku lupa logout dari sesi sebelumnya — itu aku temukan dan perbaiki sendiri lewat proses coba-coba.
+- **Disiplin Git** — Pembuatan *branch* terpisah dan pemecahan *commit* jadi beberapa bagian logis (`feat:`, `fix:`, `chore:`) aku jalankan dan verifikasi sendiri lewat `git status` dan `git log --oneline` di tiap tahap.
+
+
+Dalam Menyusun Readme ini , masi dibantu oleh AI untuk menyusun kata katanya agar mudah dan enak dibaca, ide nya tetap dari aku.
