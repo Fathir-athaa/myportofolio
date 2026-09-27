@@ -11,6 +11,26 @@ import datetime
 from main.models import Experience, Organization
 from main.forms import ExperienceForm, OrganizationForm
 
+def is_editor_user(user):
+    """True jika user login dan tergabung dalam Group 'Editor'."""
+    return user.is_authenticated and user.groups.filter(name="Editor").exists()
+
+
+def can_edit_data(user):
+    """
+    Hak mengubah (update) data dimiliki oleh Editor MAUPUN pemilik
+    portofolio (superuser). Dipakai di view edit_experience/edit_organization.
+    """
+    return user.is_authenticated and (user.is_superuser or is_editor_user(user))
+
+
+def can_create_or_delete_data(user):
+    """
+    Hak membuat (create) dan menghapus (delete) data HANYA dimiliki oleh
+    pemilik portofolio (superuser). Editor tidak diberi hak ini.
+    """
+    return user.is_authenticated and user.is_superuser
+
 def show_main(request):
     """Menampilkan halaman utama portofolio."""
     last_login = request.COOKIES.get('last_login', 'Belum ada sesi login / Cookie tidak ditemukan')
@@ -62,7 +82,7 @@ def show_organization(request):
 
 @login_required(login_url="/login/")
 def add_experience(request):
-    if not request.user.is_superuser:
+    if not can_create_or_delete_data(request.user):
         raise PermissionDenied
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -73,7 +93,7 @@ def add_experience(request):
 
 @login_required(login_url="/login/")
 def edit_experience(request, experience_id):
-    if not request.user.is_superuser:
+    if not can_edit_data(request.user):
         raise PermissionDenied
     experience = get_object_or_404(Experience, pk=experience_id)
     form = ExperienceForm(request.POST or None, instance=experience)
@@ -90,7 +110,7 @@ def edit_experience(request, experience_id):
 
 @login_required(login_url="/login/")
 def add_organization(request):
-    if not request.user.is_superuser:
+    if not can_create_or_delete_data(request.user):
         raise PermissionDenied
     form = OrganizationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -101,7 +121,7 @@ def add_organization(request):
 
 @login_required(login_url="/login/")
 def edit_organization(request, organization_id):
-    if not request.user.is_superuser:
+    if not can_edit_data(request.user):
         raise PermissionDenied
     organization = get_object_or_404(Organization, pk=organization_id)
     form = OrganizationForm(request.POST or None, instance=organization)
@@ -151,7 +171,7 @@ def get_organization_xml(request):
 
 @login_required(login_url="/login/")
 def delete_experience(request, experience_id):
-    if not request.user.is_superuser:
+    if not can_create_or_delete_data(request.user):
         raise PermissionDenied
     experience = get_object_or_404(Experience, pk=experience_id)
     if request.method == "POST":
@@ -162,7 +182,7 @@ def delete_experience(request, experience_id):
 
 @login_required(login_url="/login/")
 def delete_organization(request, organization_id):
-    if not request.user.is_superuser:
+    if not can_create_or_delete_data(request.user):
         raise PermissionDenied
     organization = get_object_or_404(Organization, pk=organization_id)
     if request.method == "POST":
