@@ -49,8 +49,10 @@
 
             <div class="project-actions">
                 {% include "components/organization_star.html" with org=org %}
-                {% if user.is_superuser %}
+                {% if user.is_superuser or is_editor %}
                 <a href="{% url 'main:edit_organization' org.id %}" class="button">Edit</a>
+                {% endif %}
+                {% if user.is_superuser %}
                 {% include "components/organization_delete_modal.html" with org=org %}
                 {% endif %}
             </div>
