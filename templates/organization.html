@@ -1,72 +1,241 @@
 {% extends 'base.html' %}
 {% load static %}
+
+{% block meta %}
+    <title>Organization - {{ name }}</title>
+{% endblock meta %}
+
 {% block content %}
 <main>
     <section class="experience-section" id="organization">
-        <div class="container">
-            <p class="section-kicker">Organizational Involvement and Activities</p>
+    <div class="container">
+        <p class="section-kicker">Organizational involvement and activities</p>
 
-        <div class="project-header">
-            <h1>Organizations</h1>
-            {% if user.is_superuser %}
-            <a href="{% url 'main:add_organization' %}" class="button project-add-button">
-                <span aria-hidden="true">+</span> Tambah Organization
-            </a>
-            {% endif %}
-        </div>
+    <div class="project-header">
+        <h1>Organizations</h1>
+        {% if user.is_superuser %}
+        <button type="button" class="button project-add-button"
+                popovertarget= "add-organization-modal">
+        <span aria-hidden="true">+</span> Tambah Organization
+        </button>
+        {% endif %}
+    </div>
 
-        <form method="get" action="{% url 'main:show_organization' %}" class="project-search">
-            <input type="search" name="name" value="{{ name_query }}"
+    <form id="search-form" class="project-search">
+        <input type="search" id="search-input" name="name" value="{{ name_query }}"
                 placeholder="Cari berdasarkan nama organisasi"
                 class="project-search__input" aria-label="Cari organisasi">
-            <button type="submit" class="button">Cari</button>
-        </form>
+        <button type="submit" class="button">Cari</button>
+    </form>
 
-        <div class="experience-grid">
-            {% for org in organization_list %}
-            <article class="experience-card">
-                <div>
-                {% if org.images.all %}
-                <div class="exp-image">
-                    <div class="exp-slider-track">
-                        {% for img in org.images.all %}
-                        <img src="{{ img.image.url }}" alt="{{ org.name }} Photo">
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="experience-header-row">
-                    <h2>{{ org.name }}</h2>
-                    {% if org.is_ongoing %}
-                        <span class="experience-status">Sedang berlangsung</span>
-                    {% else %}
-                        <span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Selesai</span>
-                    {% endif %}
-                </div>
-                <span class="experience-category">{{ org.role }}</span>
-                <p class="experience-description">{{ org.description }}</p>
-
-            <div class="project-actions">
-                {% include "components/organization_star.html" with org=org %}
-                {% if user.is_superuser or is_editor %}
-                <a href="{% url 'main:edit_organization' org.id %}" class="button">Edit</a>
-                {% endif %}
-                {% if user.is_superuser %}
-                {% include "components/organization_delete_modal.html" with org=org %}
-                {% endif %}
-            </div>
-        </div>
-        </article>
-        {% empty %}
-            {% if name_query %}
-                <p class="empty-state">Tidak ada organisasi dengan nama tersebut.</p>
-            {% else %}
-                <p class="empty-state">Belum ada organisasi yang ditambahkan.</p>
-            {% endif %}
-        {% endfor %}
-            </div>
-        </div>
-    </section>
+    <div id="loading" class="empty-state hide"><p>Memuat data...</p></div>
+        <div id="error" class="empty-state hide"><p>Gagal memuat data. Silakan coba lagi.</p></div>
+        <div id="empty" class="empty-state hide"><p>Belum ada Organisasi yang ditambahkan.</p></div>
+        <div id="grid" class="experience-grid hide"></div>
+    </div>
+</section>
 </main>
+
+{% if user.is_superuser %}
+{% include "components/organization_form_modal.html" %}
+{% endif %}
+
+<script>
+    const BASE_ENDPOINT = "{% url 'main:get_organization_json' %}";
+    const CREATE_ENDPOINT = "{% url 'main:create_organization_ajax' %}";
+    const SEARCH_PARAM = "name";
+    const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+    const CAN_EDIT = IS_SUPERUSER || "{{ is_editor|yesno:'true,false' }}" === "true";
+    const SEARCH_DEBOUNCE_DELAY = 300;
+    const EMPTY_DEFAULT = "Belum ada organisasi yang ditambahkan.";
+    const EMPTY_SEARCH = "Tidak ada organisasi dengan nama tersebut.";
+    let abortController;
+    let searchDebounceTimer;
+
+    const loadingState = document.getElementById('loading');
+    const errorState = document.getElementById('error');
+    const emptyState = document.getElementById('empty');
+    const gridContainer = document.getElementById('grid');
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const addForm = document.getElementById('organization-form');
+
+function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
+    loadingState.classList.toggle('hide', !showLoading);
+    errorState.classList.toggle('hide', !showError);
+    emptyState.classList.toggle('hide', !showEmpty);
+    gridContainer.classList.toggle('hide', !showGrid);
+}
+
+// Anti-XSS: ubah karakter khusus HTML menjadi entity
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function buildCardElement(item) {
+    const data = item.fields;
+    const itemId = item.pk;
+    const article = document.createElement('article');
+    article.className = 'experience-card';
+
+
+    const editUrl = "{% url 'main:edit_organization' 0 %}".replace('/0/', '/' + itemId + '/');
+    const deleteUrl = "{% url 'main:delete_organization' 0 %}".replace('/0/', '/' + itemId + '/');
+    const starUrl = "{% url 'main:toggle_star_organization' 0 %}".replace('/0/', '/' + itemId + '/');
+
+    const imageUrls = data.image_urls || [];
+    const imagesHtml = imageUrls.length
+    ? `<div class="exp-image"><div class="exp-slider-track">${imageUrls.map(url =>
+        `<img src="${escapeHtml(url)}" alt="Foto ${escapeHtml(data.name)}">`).join('')}</div></div>`
+    : '';
+
+    const statusHtml = data.is_ongoing
+        ? '<span class="experience-status">Sedang berlangsung</span>'
+        : '<span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Selesai</span>';
+
+    const editHtml = CAN_EDIT ? `<a href="${escapeHtml(editUrl)}" class="button">Edit</a>` : '';
+
+    const deleteHtml = IS_SUPERUSER
+        ? `<form method="post" action="${escapeHtml(deleteUrl)}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="button button-danger"
+                    onclick="return confirm('Yakin ingin menghapus data ini?');">Hapus</button>
+        </form>`
+    : '';
+
+    const isStarredClass = data.is_starred ? " is-starred" : "";
+    const starText = data.is_starred ? "Unstar" : "Star";
+    const starTitle = data.star_count > 0
+        ? `Dibintangi oleh ${escapeHtml(data.starred_by_names)}`
+        : "Jadilah yang pertama memberi star";
+
+    article.innerHTML = `
+    <div>
+        ${imagesHtml}
+        <div class="experience-header-row">
+            <h2>${escapeHtml(data.name)}</h2>
+            ${statusHtml}
+        </div>
+        <span class="experience-category">${escapeHtml(data.role)}</span>
+        <p class="experience-description">${escapeHtml(data.description)}</p>
+        <div class="project-actions">
+            <form method="post" action="${escapeHtml(starUrl)}" class="star-form">
+                {% csrf_token %}
+                <button type="submit" class="button button-star${isStarredClass}" title="${starTitle}">
+                <span aria-hidden="true">★</span>
+                ${starText}
+                <span class="star-count">${data.star_count}</span>
+                </button>
+            </form>
+            ${editHtml}
+            ${deleteHtml}
+        </div>
+    </div>
+    `;
+    return article;
+}
+
+async function fetchItems(searchQuery = "") {
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
+    try {
+        displayPageSection({ showLoading: true });
+        const url = searchQuery
+            ? `${BASE_ENDPOINT}?${SEARCH_PARAM}=${encodeURIComponent(searchQuery)}`
+            : BASE_ENDPOINT;
+    const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: abortController.signal,
+    });
+        if (!response.ok) throw new Error('Failed to fetch data');
+
+    const items = await response.json();
+    if (items.length === 0) {
+        emptyState.querySelector('p').textContent = searchQuery ? EMPTY_SEARCH : EMPTY_DEFAULT;
+        displayPageSection({ showEmpty: true });
+    } else {
+        gridContainer.innerHTML = '';
+        items.forEach(item => gridContainer.appendChild(buildCardElement(item)));
+        displayPageSection({ showGrid: true });
+    }
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Error loading data:', error);
+        displayPageSection({ showError: true });
+    }
+}
+
+// Search dengan debounce
+function searchItems() { fetchItems(searchInput.value.trim()); }
+
+searchInput.addEventListener('input', function () {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(searchItems, SEARCH_DEBOUNCE_DELAY);
+});
+searchForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    clearTimeout(searchDebounceTimer);
+    searchItems();
+});
+
+function closeModal() {
+    const modal = document.getElementById('add-organization-modal');
+    if (modal) modal.hidePopover();
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function addItem(event) {
+    event.preventDefault();
+    const submitButton = addForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    try {
+    const response = await fetch(CREATE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: new FormData(addForm),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (response.ok) {
+        addForm.reset();
+        closeModal();
+        showToast('Berhasil', 'Organization baru berhasil ditambahkan!', 'success');
+        fetchItems(searchInput.value.trim());
+    } else {
+        const errorMessages = result.errors
+            ? Object.values(result.errors).flat().map(error => error.message)
+            : [result.message || `Terjadi kesalahan (status ${response.status}).`];
+        showToast('Gagal menambahkan data', errorMessages.join(' '), 'error');
+    }
+    } catch (error) {
+        console.error('Error adding data:', error);
+        showToast('Gagal menambahkan data', 'Tidak dapat terhubung ke server. Silakan coba lagi.', 'error');
+    } finally {
+        submitButton.disabled = false;
+    }
+}
+
+if (addForm) addForm.addEventListener('submit', addItem);
+
+fetchItems(searchInput.value.trim());
+</script>
 {% endblock content %}

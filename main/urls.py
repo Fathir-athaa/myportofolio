@@ -6,6 +6,7 @@ from main.views import (
     add_organization, edit_organization, get_experience_json, get_experience_xml,
     get_organization_json, get_organization_xml, delete_experience, delete_organization,
     register, login_user, logout_user, toggle_star_experience, toggle_star_organization,
+    create_experience_ajax, create_organization_ajax,
 )
 
 app_name = "main"
@@ -14,9 +15,11 @@ urlpatterns = [
     path("", show_main, name="show_main"),
     path("experience/", show_experience, name="show_experience"),
     path("experience/add/", add_experience, name="add_experience"),
+    path("experience/add-ajax/", create_experience_ajax, name="create_experience_ajax"),
     path("experience/<uuid:experience_id>/edit/", edit_experience, name="edit_experience"),
     path("organization/", show_organization, name="show_organization"),
     path("organization/add/", add_organization, name="add_organization"),
+    path("organization/add-ajax/", create_organization_ajax, name="create_organization_ajax"),
     path("organization/<int:organization_id>/edit/", edit_organization, name="edit_organization"),
     path("register/", register, name="register"),
     path("login/", login_user, name="login"),

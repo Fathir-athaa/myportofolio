@@ -1,13 +1,15 @@
 from django.forms import ModelForm, TextInput, Textarea, DateTimeInput, Select
 from main.models import Experience, Organization
+from django.core.exceptions import ValidationError
+from django.utils.html import strip_tags
 
 class ExperienceForm(ModelForm):
     class Meta:
         model = Experience
         fields = [
-            "title", 
-            "description", 
-            "category", 
+            "title",
+            "description",
+            "category",
             "ended_at",
         ]
         labels = {
@@ -36,14 +38,23 @@ class ExperienceForm(ModelForm):
             }),
         }
 
+    def clean_title(self):
+            title = strip_tags(self.cleaned_data["title"]).strip()
+            if not title:
+                raise ValidationError("Nama proyek tidak boleh hanya berisi tag HTML.")
+            return title
+    
+    def clean_description(self):
+            return strip_tags(self.cleaned_data["description"]).strip()
+
 class OrganizationForm(ModelForm):
     class Meta:
         model = Organization
         fields = [
-            "name", 
-            "role", 
-            "status", 
-            "is_active", 
+            "name",
+            "role",
+            "status",
+            "is_active",
             "description",
         ]
         labels = {
@@ -72,3 +83,18 @@ class OrganizationForm(ModelForm):
                 "rows": 4,
             }),
         }
+
+    def clean_name(self):
+        name = strip_tags(self.cleaned_data["name"]).strip()
+        if not name:
+            raise ValidationError("Judul pengalaman tidak boleh hanya berisi tag HTML.")
+        return name
+
+    def clean_role(self):
+        return strip_tags(self.cleaned_data["role"]).strip()
+
+    def clean_status(self):
+        return strip_tags(self.cleaned_data["status"]).strip()
+
+    def clean_description(self):
+        return strip_tags(self.cleaned_data["description"]).strip()

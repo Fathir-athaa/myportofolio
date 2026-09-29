@@ -6,10 +6,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core import serializers
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import datetime
 from main.models import Experience, Organization
 from main.forms import ExperienceForm, OrganizationForm
+from django.views.decorators.http import require_POST
 
 def is_editor_user(user):
     """True jika user login dan tergabung dalam Group 'Editor'."""
@@ -35,42 +36,19 @@ def show_main(request):
     return render(request, 'index.html', context)
 
 def show_experience(request):
-    json_response = get_experience_json(request)
-    experiences = serializers.deserialize("json", json_response.content.decode("utf-8"))
-    experience_list = [exp.object for exp in experiences]
-
-    form = ExperienceForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Experience baru berhasil ditambahkan!")
-        return redirect('main:show_experience')
-
     context = {
         'name': 'Fathir Atha Rizki Tasril',
-        'experience_list': experience_list,
-        'form': form,
+        'form': ExperienceForm(),
         'title_query': request.GET.get("title", "").strip(),
     }
     return render(request, 'experience.html', context)
 
 
 def show_organization(request):
-    name_query = request.GET.get("name", "").strip()
-    json_response = get_organization_json(request)
-    organizations = serializers.deserialize("json", json_response.content.decode("utf-8"))
-    organization_list = [org.object for org in organizations]
-
-    form = OrganizationForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Organization baru berhasil ditambahkan!")
-        return redirect('main:show_organization')
-
     context = {
         'name': 'Fathir Atha Rizki Tasril',
-        'organization_list': organization_list,
-        'form': form,
-        'name_query': name_query,
+        'form': OrganizationForm(),
+        'name_query': request.GET.get("name", "").strip(),
     }
     return render(request, 'organization.html', context)
 
@@ -84,6 +62,28 @@ def add_experience(request):
         return redirect('main:show_experience')
     context = {'form': form}
     return render(request, 'experience_form.html', context)
+
+def _create_via_ajax(request, form_class, success_message):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan data."},
+            status=403,
+        )
+    form = form_class(request.POST)
+    if form.is_valid():
+        obj = form.save()
+        return JsonResponse({"message": success_message, "pk": str(obj.pk)}, status=201)
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+
+@require_POST
+def create_experience_ajax(request):
+    return _create_via_ajax(request, ExperienceForm, "Experience berhasil ditambahkan.")
+
+
+@require_POST
+def create_organization_ajax(request):
+    return _create_via_ajax(request, OrganizationForm, "Organization berhasil ditambahkan.")
 
 @login_required(login_url="/login/")
 def edit_experience(request, experience_id):
@@ -130,16 +130,39 @@ def edit_organization(request, organization_id):
     }
     return render(request, 'organization_edit_form.html', context)
 
+def _star_data(request, obj):
+    starred_users = list(obj.starred_by.all())  # sudah di-prefetch
+    is_starred = request.user.is_authenticated and request.user in starred_users
+    return {
+        "star_count": len(starred_users),
+        "is_starred": is_starred,
+        "starred_by_names": ", ".join(u.username for u in starred_users),
+    }
+
 def get_experience_json(request):
     title_query = request.GET.get("title", "").strip()
-    experiences = Experience.objects.all().order_by('-started_at')
-
+    experiences = (
+        Experience.objects.prefetch_related('starred_by', 'images')
+        .order_by('-started_at')
+    )
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
 
-    experience_json = serializers.serialize("json", experiences, use_natural_foreign_keys=True)
-    return HttpResponse(experience_json, content_type="application/json")
-
+    data = []
+    for experience in experiences:
+        data.append({
+            "pk": str(experience.id),
+            "fields": {
+                "title": experience.title,
+                "description": experience.description,
+                "category": experience.category,
+                "category_display": experience.get_category_display(),
+                "is_ongoing": experience.is_ongoing,
+                "image_urls": [img.image.url for img in experience.images.all()],
+                **_star_data(request, experience),
+            },
+        })
+    return JsonResponse(data, safe=False)
 
 def get_experience_xml(request):
     experiences = Experience.objects.all().order_by('-started_at')
@@ -149,13 +172,25 @@ def get_experience_xml(request):
 
 def get_organization_json(request):
     name_query = request.GET.get("name", "").strip()
-    organizations = Organization.objects.all()
-
+    organizations = Organization.objects.prefetch_related('starred_by', 'images').all()
     if name_query:
         organizations = organizations.filter(name__icontains=name_query)
 
-    organization_json = serializers.serialize("json", organizations, use_natural_foreign_keys=True)
-    return HttpResponse(organization_json, content_type="application/json")
+    data = []
+    for organization in organizations:
+        data.append({
+            "pk": str(organization.id),
+            "fields": {
+                "name": organization.name,
+                "role": organization.role,
+                "status": organization.status,
+                "description": organization.description,
+                "is_ongoing": organization.is_ongoing,
+                "image_urls": [img.image.url for img in organization.images.all()],
+                **_star_data(request, organization),
+            },
+        })
+    return JsonResponse(data, safe=False)
 
 
 def get_organization_xml(request):
