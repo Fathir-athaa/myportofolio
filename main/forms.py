@@ -41,7 +41,7 @@ class ExperienceForm(ModelForm):
     def clean_title(self):
             title = strip_tags(self.cleaned_data["title"]).strip()
             if not title:
-                raise ValidationError("Nama proyek tidak boleh hanya berisi tag HTML.")
+                raise ValidationError("Judul pengalaman tidak boleh hanya berisi tag HTML.")
             return title
     
     def clean_description(self):
@@ -87,7 +87,7 @@ class OrganizationForm(ModelForm):
     def clean_name(self):
         name = strip_tags(self.cleaned_data["name"]).strip()
         if not name:
-            raise ValidationError("Judul pengalaman tidak boleh hanya berisi tag HTML.")
+            raise ValidationError("Nama organisasi tidak boleh hanya berisi tag HTML.")
         return name
 
     def clean_role(self):

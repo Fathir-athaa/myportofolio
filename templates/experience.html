@@ -67,16 +67,6 @@
     gridContainer.classList.toggle('hide', !showGrid);
   }
 
-  // Anti-XSS: ubah karakter khusus HTML menjadi entity
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
   function buildCardElement(item) {
     const data = item.fields;
     const itemId = item.pk;
@@ -186,21 +176,6 @@
   function closeModal() {
     const modal = document.getElementById('add-experience-modal');
     if (modal) modal.hidePopover();
-  }
-
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
   }
 
   async function addItem(event) {

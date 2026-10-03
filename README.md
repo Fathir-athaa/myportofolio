@@ -337,3 +337,106 @@ Di tugas ini aku pakai AI (Claude) sebagai *pair programmer* untuk topik yang re
 
 
 Dalam Menyusun Readme ini , masi dibantu oleh AI untuk menyusun kata katanya agar mudah dan enak dibaca, ide nya tetap dari aku.
+
+---
+
+# Tugas 5 — Web Interactivity with JavaScript
+
+Di tugas ini halaman daftar **Experience** dan **Organization** dibuat interaktif memakai AJAX: halaman hanya merender kerangka, lalu datanya diambil dari endpoint JSON lewat `fetch()`. Hak akses tetap berlaku ,pengunjung yang belum login bisa membaca data, tapi menambah data hanya bisa dilakukan oleh Owner (superuser), dan itu dicek **di dalam view**, bukan sekadar menyembunyikan tombol.
+
+## Fitur
+
+- **Menampilkan data dengan AJAX** — `experience.html` dan `organization.html` hanya berisi kerangka (`#loading`, `#error`, `#empty`, `#grid`). Data diambil dari `/api/experience/` dan `/api/organization/` memakai `fetch()`. Respons JSON disusun manual dengan `JsonResponse` dan memuat informasi star `star_count`, `is_starred` (status star untuk user yang sedang login; selalu `false` untuk pengunjung), dan `starred_by_names`.
+
+- **Tiga kondisi tampilan** — fungsi `displayPageSection()` mengatur kondisi *loading* , *data kosong*, dan *error*.
+
+- **Pencarian dengan debouncing** — kolom cari memanggil API (`?title=` untuk Experience, `?name=` untuk Organization, filter `icontains`) tanpa reload. Permintaan baru dikirim 300 ms setelah user berhenti mengetik (`setTimeout` + `clearTimeout`), dan request lama dibatalkan dengan `AbortController` supaya respons yang telat tidak menimpa hasil terbaru.
+
+- **Tambah data lewat modal + AJAX** — form tambah ada di dalam modal (Popover API) di halaman daftar, bukan di halaman terpisah. Form dikirim dengan `fetch()` ke `create_experience_ajax` / `create_organization_ajax`. View tersebut memakai `@require_POST`, memeriksa `is_superuser` di dalam view (**403** untuk pengunjung, user biasa, dan Editor), memvalidasi dengan `ModelForm` (**400** + `errors` berformat JSON), dan membalas **201** saat sukses. Setelah sukses, modal menutup, form di-reset, dan daftar dimuat ulang tanpa reload halaman.
+
+- **CSRF** — permintaan POST menyertakan header `X-CSRFToken` (dibaca dari cookie `csrftoken` lewat `getCookie`) dan form juga memuat `csrfmiddlewaretoken` dari `{% csrf_token %}`. POST tanpa token ditolak Django dengan 403.
+
+- **Notifikasi toast** — `showToast()` (dari `static/js/toast.js`) menampilkan toast sukses saat data berhasil ditambahkan dan toast error saat gagal, termasuk pesan validasi dari server.
+
+- **Perlindungan XSS (dua lapis)** — (1) sisi JavaScript: setiap nilai teks yang disisipkan ke HTML lewat template literal/`innerHTML` dibungkus `escapeHtml()`, dan toast memakai `textContent`; (2) sisi server: `strip_tags` di method `clean_<field>` pada `ExperienceForm` dan `OrganizationForm`.
+
+- **JavaScript bersama** — `getCookie` dan `escapeHtml` dipindahkan ke `static/js/utils.js` yang dimuat dari `base.html`, jadi tidak diduplikasi di tiap halaman.
+
+- **Skrip yang aman untuk semua peran** — elemen yang hanya dirender untuk Owner (tombol tambah, modal, form) dicek dulu sebelum dipasangi event listener (`if (addForm) addForm.addEventListener(...)`), sehingga skrip tidak berhenti di tengah jalan untuk pengunjung/user lain.
+
+## Tech Stack
+
+Tidak ada dependency baru. Tetap Django + SQLite3, ditambah JavaScript (Fetch API, Popover API, `AbortController`) tanpa library tambahan.
+
+## Struktur Proyek yang Diperbarui
+
+```
+myportofolio/
+├── main/
+│   ├── forms.py            # DIUBAH — pesan error clean_title diperbaiki
+│   ├── tests.py            # DIUBAH — Class AjaxTest
+│   ├── urls.py             # endpoint add-ajax & api JSON
+│   └── views.py            # JsonResponse + create_*_ajax (403/400/201)
+├── static/js/
+│   ├── toast.js            # showToast
+│   └── utils.js            # BARU — getCookie & escapeHtml bersama
+├── templates/
+│   ├── base.html           # DIUBAH — memuat utils.js
+│   ├── experience.html     # DIUBAH — memakai utils.js
+│   ├── organization.html   # DIUBAH — memakai utils.js
+│   └── components/
+│       ├── experience_form_modal.html
+│       └── organization_form_modal.html
+└── e2e_selenium.py         # GANTI NAMA dari test_e2e.py
+```
+
+## Cara Menjalankan & Menguji
+
+```bash
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+python manage.py test
+```
+
+**Uji manual XSS:** login sebagai Owner → klik **Tambah Experience** / **Tambah Organization** → isi judul/nama dengan `<img src="x" onerror="alert('XSS!')">` → server menolak (toast error, alert tidak muncul). Isi deskripsi dengan `Halo <img src="x" onerror="alert('XSS!')">` → tersimpan sebagai teks biasa `Halo`.
+
+**Uji per peran:** buka `/experience/` dan `/organization/` sebagai pengunjung (Incognito), user biasa, Editor, dan Owner — data harus termuat di semua peran, tombol Tambah hanya untuk Owner.
+
+## Progres Pengerjaan
+
+- **Tahap 1 — Audit.** Membaca ulang instruksi tugas dan membandingkannya dengan kode dari Tutorial 5. Hasilnya, sebagian besar checklist sudah terpenuhi di Experience dan Organization;
+- **Tahap 2 — Verifikasi perilaku.** Menjalankan aplikasi di database baru dan menguji semua peran (pengunjung, user biasa, Editor, Owner): kode status 201/400/403, POST tanpa token CSRF, payload XSS, struktur JSON beserta data star, pencarian, serta kondisi loading/kosong/error di sisi JavaScript.
+- **Tahap 3 — Perbaikan & perapian.** Memperbaiki pesan error validasi yang tertukar (Experience menyebut "Nama proyek", Organization menyebut "Judul pengalaman"), memindahkan `getCookie`/`escapeHtml` ke `static/js/utils.js`, mengganti nama `test_e2e.py` karena membuat `manage.py test` crash (butuh `selenium` yang tidak ada di `requirements.txt`), dan menambah 6 tes otomatis.
+
+## Pertanyaan Reflektif
+
+1. **Debouncing** adalah teknik menunda eksekusi sebuah fungsi sampai pemicunya berhenti terjadi selama jangka waktu tertentu: setiap ada event baru, timer direset, dan fungsi hanya dijalankan jika timer sempat habis tanpa event baru. Pada pencarian AJAX, tanpa debouncing setiap ketikan (`input` event) langsung mengirim request, jadi mengetik "magang" menghasilkan 6 request padahal hanya hasil terakhir yang dibutuhkan. Akibatnya server dan database terbebani, bandwidth terbuang, tampilan berkedip karena daftar dirender ulang terus-menerus, dan muncul *race condition* — respons untuk "mag" bisa tiba setelah respons untuk "magang" sehingga hasil lama menimpa hasil baru. Di proyek ini aku memakai `setTimeout` 300 ms yang di-`clearTimeout` pada tiap ketikan, ditambah `AbortController` untuk membatalkan request yang sudah tidak relevan.
+
+2. **`await`** menjeda eksekusi fungsi `async` sampai `Promise` yang dikembalikan `fetch()` selesai (*resolved*), lalu memberikan nilainya — objek `Response` — ke kode berikutnya. Penjedaan ini tidak memblokir *main thread*, jadi halaman tetap responsif selama menunggu jaringan. `await` juga dipakai pada `response.json()` karena membaca body juga asinkron. Kalau `await` tidak dipakai, variabel `response` hanya berisi `Promise` yang belum selesai, bukan `Response`: `response.ok` bernilai `undefined` (sehingga kode salah mengira request gagal), `response.json()` dijalankan terlalu dini atau menghasilkan `Promise` lagi, dan baris setelahnya berjalan sebelum data tiba. Selain itu, error jaringan tidak tertangkap oleh `try/catch` karena penolakan `Promise` terjadi belakangan, sehingga muncul *unhandled promise rejection* dan kondisi loading/error tidak pernah diperbarui dengan benar.
+
+3. **XSS (Cross-Site Scripting)** adalah serangan di mana penyerang menyisipkan kode JavaScript berbahaya ke dalam halaman yang kemudian dijalankan di browser korban, dengan hak akses yang sama seperti halaman itu sendiri. Dampaknya antara lain pencurian cookie/sesi, melakukan aksi atas nama korban (misalnya mengirim POST dengan CSRF token korban), dan mengubah tampilan halaman. Data lewat AJAX/JavaScript lebih rentan karena template Django melakukan *auto-escaping* pada `{{ variabel }}` secara default, sedangkan di JavaScript kita menyusun string HTML sendiri (template literal lalu `innerHTML`) sehingga browser mengurai data itu sebagai HTML, dan tidak ada perlindungan otomatis. Payload seperti `<img src="x" onerror="alert('XSS!')">` bahkan berjalan tanpa tag `<script>`. Perlindungan jadi bergantung pada disiplin developer: satu nilai yang lupa di-escape sudah cukup menjadi celah. Karena itu di proyek ini kutetapkan beberapa lapis pertahanan: `escapeHtml()` untuk setiap nilai, `textContent` untuk toast, dan `strip_tags` di sisi server.
+
+## AI Disclosure
+
+Di tugas ini aku pakai **Gemini** sebagai pendamping, dan teman berdiskusi.
+
+## Bagian yang dibantu AI:
+
+- Brainstorming & Draf Awal kerangka dasar penjelasan teori.
+- Mendapatkan rekomendasi terkait implementasi debouncing pada fitur pencarian dan saran arsitektur
+- Menggunakan simulasi lingkungan virtual (seperti jsdom)
+- membantu mengidentifikasi blind spot pada kondisi state antarmuka (loading/kosong/error).
+- Mendapatkan referensi payload XSS yang aman digunakan untuk menguji celah keamanan pada input form.
+
+## Bagian yang aku kerjain sendiri:
+
+- Menulis dan mengintegrasikan kode AJAX secara langsung ke dalam views, forms, dan template (base.html, experience.html, organization.html).
+- Melakukan pengujian menyeluruh terhadap endpoint API untuk memastikan response status code (201/400/403) sudah tepat. Menguji POST request tanpa CSRF token untuk memverifikasi proteksi keamanan, dan menyuntikkan payload XSS melalui modal untuk memastikan fungsi escape HTML bekerja.
+- Menemukan dan memperbaiki pesan error validasi yang tertukar di forms.py. Melakukan refactoring dengan membuat static/js/utils.js untuk fungsi utilitas dan membersihkan fungsi-fungsi JavaScript yang duplikat di berbagai template.
+- Menyunting, menulis ulang, dan menyesuaikan draf README.
+
+Dalam menyusun bahasa pada readme ini masi menggunakana AI ,tetapi ide yang ingin disampaikan dan alurnya dari aku sendiri , dan aku juga memperbaiki bahasa yang tidak sesuai agar mudah di ikuti alurnya.
