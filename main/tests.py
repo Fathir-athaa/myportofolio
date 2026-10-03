@@ -1,9 +1,8 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from main.models import Experience, Organization
-
 
 class MainTest(TestCase):
     def setUp(self):
@@ -17,6 +16,95 @@ class MainTest(TestCase):
             role="Staff Ahli",
             description="Mengembangkan program kerja keilmuan.",
         )
+
+class AjaxTest(TestCase):
+
+    XSS = '<img src="x" onerror="alert(\'XSS!\')">'
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser("owner", "o@x.com", "pw12345!")
+        self.editor = User.objects.create_user("editor", password="pw12345!")
+        self.editor.groups.add(Group.objects.get(name="Editor"))
+        self.biasa = User.objects.create_user("biasa", password="pw12345!")
+
+        self.exp = Experience.objects.create(
+            title="Asisten Dosen PBP", description="Membantu praktikum.", category="part-time")
+        self.org = Organization.objects.create(
+            name="BEM Fasilkom", role="Staff", description="Divisi kominfo.")
+
+    def test_json_star_info_for_anonymous_and_logged_in_user(self):
+        self.exp.starred_by.add(self.biasa)
+        self.org.starred_by.add(self.biasa, self.owner)
+
+        anon = self.client.get(reverse("main:get_experience_json")).json()[0]["fields"]
+        self.assertEqual(anon["star_count"], 1)
+        self.assertFalse(anon["is_starred"])
+
+        self.client.login(username="biasa", password="pw12345!")
+        exp = self.client.get(reverse("main:get_experience_json")).json()[0]["fields"]
+        org = self.client.get(reverse("main:get_organization_json")).json()[0]["fields"]
+        self.assertTrue(exp["is_starred"])
+        self.assertEqual(org["star_count"], 2)
+        self.assertTrue(org["is_starred"])
+
+    def test_search_filters_by_title_and_name(self):
+        Experience.objects.create(title="Magang Backend", description="x")
+        Organization.objects.create(name="Himpunan Mahasiswa", role="Anggota", description="x")
+
+        res = self.client.get(reverse("main:get_experience_json"), {"title": "magang"}).json()
+        self.assertEqual([i["fields"]["title"] for i in res], ["Magang Backend"])
+        res = self.client.get(reverse("main:get_organization_json"), {"name": "bem"}).json()
+        self.assertEqual([i["fields"]["name"] for i in res], ["BEM Fasilkom"])
+        self.assertEqual(self.client.get(reverse("main:get_experience_json"), {"title": "zzz"}).json(), [])
+
+    def test_only_owner_can_create_via_ajax(self):
+        url = reverse("main:create_organization_ajax")
+        payload = {"name": "Org Baru", "role": "Anggota", "status": "Active", "description": "Deskripsi"}
+        for username in (None, "biasa", "editor"):
+            self.client.logout()
+            if username:
+                self.client.login(username=username, password="pw12345!")
+            self.assertEqual(self.client.post(url, payload).status_code, 403, username)
+        self.assertFalse(Organization.objects.filter(name="Org Baru").exists())
+
+        self.client.login(username="owner", password="pw12345!")
+        self.assertEqual(self.client.post(url, payload).status_code, 201)
+
+    def test_post_without_csrf_token_is_rejected(self):
+        from django.test import Client
+        client = Client(enforce_csrf_checks=True)
+        client.login(username="owner", password="pw12345!")
+        payload = {"title": "Tanpa CSRF", "description": "x", "category": "internship"}
+        self.assertEqual(client.post(reverse("main:create_experience_ajax"), payload).status_code, 403)
+        self.assertFalse(Experience.objects.filter(title="Tanpa CSRF").exists())
+
+    def test_validation_errors_return_400_with_messages(self):
+        self.client.login(username="owner", password="pw12345!")
+        res = self.client.post(reverse("main:create_experience_ajax"),
+                                    {"title": "", "description": "x", "category": "internship"})
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("title", res.json()["errors"])
+
+    def test_xss_payload_is_rejected_or_sanitized(self):
+        self.client.login(username="owner", password="pw12345!")
+
+        res = self.client.post(reverse("main:create_experience_ajax"),
+                                    {"title": self.XSS, "description": "x", "category": "internship"})
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Judul pengalaman", res.json()["errors"]["title"][0]["message"])
+
+        res = self.client.post(reverse("main:create_organization_ajax"),
+                                {"name": self.XSS, "role": "r", "status": "s", "description": "d"})
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Nama organisasi", res.json()["errors"]["name"][0]["message"])
+
+        res = self.client.post(reverse("main:create_organization_ajax"),
+                                {"name": "Org <b>Tebal</b>", "role": "r", "status": "s",
+                                "description": "Halo " + self.XSS})
+        self.assertEqual(res.status_code, 201)
+        saved = Organization.objects.get(name="Org Tebal")
+        self.assertEqual(saved.description, "Halo")
+        self.assertNotIn("<", saved.name + saved.description)
 
     def test_main_url_is_accessible(self):
         response = self.client.get(reverse("main:show_main"))
