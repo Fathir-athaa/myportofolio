@@ -36,6 +36,7 @@ urlpatterns = [
         path("experience/<uuid:experience_id>/star/", toggle_star_experience, name="toggle_star_experience"),
     path("organization/<int:organization_id>/star/", toggle_star_organization, name="toggle_star_organization"),
 ]
-
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Hanya layani folder upload gambar
+    urlpatterns += static("/experiences/", document_root=settings.BASE_DIR / "experiences")
+    urlpatterns += static("/organization_images/", document_root=settings.BASE_DIR / "organization_images")

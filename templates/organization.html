@@ -40,17 +40,20 @@
 {% include "components/organization_form_modal.html" %}
 {% endif %}
 
+{% csrf_token %}
 <script>
-    const BASE_ENDPOINT = "{% url 'main:get_organization_json' %}";
-    const CREATE_ENDPOINT = "{% url 'main:create_organization_ajax' %}";
-    const SEARCH_PARAM = "name";
+    // getCookie() dan escapeHtml() sudah tersedia dari static/js/utils.js (di-load oleh base.html)
+    const BASE_ORGANIZATIONS_ENDPOINT = "{% url 'api:organization-list' %}";
+    const DETAIL_ORGANIZATION_ENDPOINT = "{% url 'api:organization-detail' 0 %}";
+    const STAR_ORGANIZATION_ENDPOINT = "{% url 'api:organization-star' 0 %}";
+    const EDIT_ORGANIZATION_PAGE = "{% url 'main:edit_organization' 0 %}";
+    const LOGIN_PAGE = "{% url 'main:login' %}";
     const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+    const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
     const CAN_EDIT = IS_SUPERUSER || "{{ is_editor|yesno:'true,false' }}" === "true";
     const SEARCH_DEBOUNCE_DELAY = 300;
     const EMPTY_DEFAULT = "Belum ada organisasi yang ditambahkan.";
     const EMPTY_SEARCH = "Tidak ada organisasi dengan nama tersebut.";
-    let abortController;
-    let searchDebounceTimer;
 
     const loadingState = document.getElementById('loading');
     const errorState = document.getElementById('error');
@@ -58,184 +61,180 @@
     const gridContainer = document.getElementById('grid');
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
-    const addForm = document.getElementById('organization-form');
+    const organizationForm = document.getElementById('organization-form');
+    let organizationsAbortController;
+    let searchDebounceTimer;
 
-function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
-    loadingState.classList.toggle('hide', !showLoading);
-    errorState.classList.toggle('hide', !showError);
-    emptyState.classList.toggle('hide', !showEmpty);
-    gridContainer.classList.toggle('hide', !showGrid);
-}
+    // ID Organization berupa angka, jadi URL dummy memakai 0 -> ganti "/0/" dengan "/<id>/"
+    function organizationEndpoint(pattern, id) {
+        return pattern.replace('/0/', `/${encodeURIComponent(id)}/`);
+    }
 
-// Anti-XSS: ubah karakter khusus HTML menjadi entity
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
+    function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
+        loadingState.classList.toggle('hide', !showLoading);
+        errorState.classList.toggle('hide', !showError);
+        emptyState.classList.toggle('hide', !showEmpty);
+        gridContainer.classList.toggle('hide', !showGrid);
+    }
 
-function buildCardElement(item) {
-    const data = item.fields;
-    const itemId = item.pk;
-    const article = document.createElement('article');
-    article.className = 'experience-card';
+    function buildOrganizationCardElement(organization) {
+        const article = document.createElement('article');
+        article.className = 'experience-card';
 
+        const imageUrls = organization.image_urls || [];
+        const imagesHtml = imageUrls.length
+            ? `<div class="exp-image"><div class="exp-slider-track">${imageUrls.map(url =>
+                `<img src="${escapeHtml(url)}" alt="Foto ${escapeHtml(organization.name)}">`).join('')}</div></div>`
+            : '';
 
-    const editUrl = "{% url 'main:edit_organization' 0 %}".replace('/0/', '/' + itemId + '/');
-    const deleteUrl = "{% url 'main:delete_organization' 0 %}".replace('/0/', '/' + itemId + '/');
-    const starUrl = "{% url 'main:toggle_star_organization' 0 %}".replace('/0/', '/' + itemId + '/');
+        const statusHtml = organization.is_ongoing
+            ? '<span class="experience-status">Sedang berlangsung</span>'
+            : '<span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Selesai</span>';
 
-    const imageUrls = data.image_urls || [];
-    const imagesHtml = imageUrls.length
-    ? `<div class="exp-image"><div class="exp-slider-track">${imageUrls.map(url =>
-        `<img src="${escapeHtml(url)}" alt="Foto ${escapeHtml(data.name)}">`).join('')}</div></div>`
-    : '';
+        const starTitle = organization.star_count > 0
+            ? `Dibintangi oleh ${escapeHtml(organization.starred_by_names)}`
+            : 'Jadilah yang pertama memberi star';
 
-    const statusHtml = data.is_ongoing
-        ? '<span class="experience-status">Sedang berlangsung</span>'
-        : '<span class="experience-status" style="background-color: rgba(255,255,255,0.05); color: #a0a0a0; border-color: rgba(255,255,255,0.1);">Selesai</span>';
-
-    const editHtml = CAN_EDIT ? `<a href="${escapeHtml(editUrl)}" class="button">Edit</a>` : '';
-
-    const deleteHtml = IS_SUPERUSER
-        ? `<form method="post" action="${escapeHtml(deleteUrl)}" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="button button-danger"
-                    onclick="return confirm('Yakin ingin menghapus data ini?');">Hapus</button>
-        </form>`
-    : '';
-
-    const isStarredClass = data.is_starred ? " is-starred" : "";
-    const starText = data.is_starred ? "Unstar" : "Star";
-    const starTitle = data.star_count > 0
-        ? `Dibintangi oleh ${escapeHtml(data.starred_by_names)}`
-        : "Jadilah yang pertama memberi star";
-
-    article.innerHTML = `
-    <div>
-        ${imagesHtml}
-        <div class="experience-header-row">
-            <h2>${escapeHtml(data.name)}</h2>
-            ${statusHtml}
-        </div>
-        <span class="experience-category">${escapeHtml(data.role)}</span>
-        <p class="experience-description">${escapeHtml(data.description)}</p>
-        <div class="project-actions">
-            <form method="post" action="${escapeHtml(starUrl)}" class="star-form">
-                {% csrf_token %}
-                <button type="submit" class="button button-star${isStarredClass}" title="${starTitle}">
+        const starHtml = IS_AUTHENTICATED
+            ? `<button type="button" class="button button-star${organization.is_starred ? ' is-starred' : ''}"
+                    data-action="star" data-id="${escapeHtml(organization.id)}" title="${starTitle}">
                 <span aria-hidden="true">★</span>
-                ${starText}
-                <span class="star-count">${data.star_count}</span>
-                </button>
-            </form>
-            ${editHtml}
-            ${deleteHtml}
+                ${organization.is_starred ? 'Unstar' : 'Star'}
+                <span class="star-count">${organization.star_count}</span>
+            </button>`
+            : `<a href="${escapeHtml(LOGIN_PAGE)}" class="button button-star" title="${starTitle}">
+                <span aria-hidden="true">★</span>
+                Login untuk star
+                <span class="star-count">${organization.star_count}</span>
+            </a>`;
+
+        const editHtml = CAN_EDIT
+            ? `<a href="${escapeHtml(organizationEndpoint(EDIT_ORGANIZATION_PAGE, organization.id))}" class="button">Edit</a>`
+            : '';
+
+        const deleteHtml = IS_SUPERUSER
+            ? `<button type="button" class="button button-danger"
+                    data-action="delete" data-id="${escapeHtml(organization.id)}">Hapus</button>`
+            : '';
+
+        article.innerHTML = `
+        <div>
+            ${imagesHtml}
+            <div class="experience-header-row">
+                <h2>${escapeHtml(organization.name)}</h2>
+                ${statusHtml}
+            </div>
+            <span class="experience-category">${escapeHtml(organization.role)}</span>
+            <p class="experience-description">${escapeHtml(organization.description)}</p>
+            <div class="project-actions">
+                ${starHtml}
+                ${editHtml}
+                ${deleteHtml}
+            </div>
         </div>
-    </div>
-    `;
-    return article;
-}
-
-async function fetchItems(searchQuery = "") {
-    if (abortController) abortController.abort();
-    abortController = new AbortController();
-    try {
-        displayPageSection({ showLoading: true });
-        const url = searchQuery
-            ? `${BASE_ENDPOINT}?${SEARCH_PARAM}=${encodeURIComponent(searchQuery)}`
-            : BASE_ENDPOINT;
-    const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        signal: abortController.signal,
-    });
-        if (!response.ok) throw new Error('Failed to fetch data');
-
-    const items = await response.json();
-    if (items.length === 0) {
-        emptyState.querySelector('p').textContent = searchQuery ? EMPTY_SEARCH : EMPTY_DEFAULT;
-        displayPageSection({ showEmpty: true });
-    } else {
-        gridContainer.innerHTML = '';
-        items.forEach(item => gridContainer.appendChild(buildCardElement(item)));
-        displayPageSection({ showGrid: true });
+        `;
+        return article;
     }
-    } catch (error) {
-        if (error.name === 'AbortError') return;
-        console.error('Error loading data:', error);
-        displayPageSection({ showError: true });
-    }
-}
 
-// Search dengan debounce
-function searchItems() { fetchItems(searchInput.value.trim()); }
-
-searchInput.addEventListener('input', function () {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(searchItems, SEARCH_DEBOUNCE_DELAY);
-});
-searchForm.addEventListener('submit', function (event) {
-    event.preventDefault();
-    clearTimeout(searchDebounceTimer);
-    searchItems();
-});
-
-function closeModal() {
-    const modal = document.getElementById('add-organization-modal');
-    if (modal) modal.hidePopover();
-}
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+    async function fetchOrganizations(searchQuery = '') {
+        if (organizationsAbortController) organizationsAbortController.abort();
+        organizationsAbortController = new AbortController();
+        try {
+            displayPageSection({ showLoading: true });
+            const url = new URL(BASE_ORGANIZATIONS_ENDPOINT, window.location.origin);
+            if (searchQuery) url.searchParams.set('name', searchQuery);
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' },
+                signal: organizationsAbortController.signal,
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const organizations = await response.json();
+            gridContainer.replaceChildren(...organizations.map(buildOrganizationCardElement));
+            if (organizations.length === 0) {
+                emptyState.querySelector('p').textContent = searchQuery ? EMPTY_SEARCH : EMPTY_DEFAULT;
             }
+            displayPageSection({ showGrid: organizations.length > 0, showEmpty: organizations.length === 0 });
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error(error);
+            displayPageSection({ showError: true });
         }
     }
-    return cookieValue;
-}
 
-async function addItem(event) {
-    event.preventDefault();
-    const submitButton = addForm.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-    try {
-    const response = await fetch(CREATE_ENDPOINT, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') },
-        body: new FormData(addForm),
+    function apiErrorMessage(data, status) {
+        const messages = Object.values(data).flat().filter(value => typeof value === 'string');
+        return messages.join(' ') || `Terjadi kesalahan (HTTP ${status}).`;
+    }
+
+    async function writeOrganization(url, method, payload) {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: payload === undefined ? undefined : JSON.stringify(payload),
+        });
+        if (response.status === 204) return null;
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(apiErrorMessage(data, response.status));
+        return data;
+    }
+
+    async function addOrganization(event) {
+        event.preventDefault();
+        const button = organizationForm.querySelector('button[type="submit"]');
+        button.disabled = true;
+        try {
+            const fields = new FormData(organizationForm);
+            const payload = Object.fromEntries(
+                ['name', 'role', 'status', 'description'].map(name => [name, fields.get(name)])
+            );
+            payload.is_active = fields.has('is_active'); // checkbox -> true/false
+            await writeOrganization(BASE_ORGANIZATIONS_ENDPOINT, 'POST', payload);
+            organizationForm.reset();
+            document.getElementById('add-organization-modal').hidePopover();
+            showToast('Berhasil', 'Organization baru berhasil ditambahkan!', 'success');
+            await fetchOrganizations(searchInput.value.trim());
+        } catch (error) {
+            showToast('Gagal menambahkan data', error.message, 'error');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    if (organizationForm) organizationForm.addEventListener('submit', addOrganization);
+
+    gridContainer.addEventListener('click', async function (event) {
+        const button = event.target.closest('button[data-action]');
+        if (!button || button.disabled) return;
+        const action = button.dataset.action;
+        if (action === 'delete' && !window.confirm('Yakin ingin menghapus data ini?')) return;
+        button.disabled = true;
+        try {
+            const pattern = action === 'star' ? STAR_ORGANIZATION_ENDPOINT : DETAIL_ORGANIZATION_ENDPOINT;
+            await writeOrganization(organizationEndpoint(pattern, button.dataset.id),
+                action === 'star' ? 'POST' : 'DELETE');
+            showToast('Berhasil', action === 'star' ? 'Star diperbarui.' : 'Organization berhasil dihapus.', 'success');
+            await fetchOrganizations(searchInput.value.trim());
+        } catch (error) {
+            showToast('Permintaan gagal', error.message, 'error');
+        } finally {
+            button.disabled = false;
+        }
     });
-    const result = await response.json().catch(() => ({}));
 
-    if (response.ok) {
-        addForm.reset();
-        closeModal();
-        showToast('Berhasil', 'Organization baru berhasil ditambahkan!', 'success');
-        fetchItems(searchInput.value.trim());
-    } else {
-        const errorMessages = result.errors
-            ? Object.values(result.errors).flat().map(error => error.message)
-            : [result.message || `Terjadi kesalahan (status ${response.status}).`];
-        showToast('Gagal menambahkan data', errorMessages.join(' '), 'error');
-    }
-    } catch (error) {
-        console.error('Error adding data:', error);
-        showToast('Gagal menambahkan data', 'Tidak dapat terhubung ke server. Silakan coba lagi.', 'error');
-    } finally {
-        submitButton.disabled = false;
-    }
-}
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => fetchOrganizations(searchInput.value.trim()), SEARCH_DEBOUNCE_DELAY);
+    });
+    searchForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        fetchOrganizations(searchInput.value.trim());
+    });
 
-if (addForm) addForm.addEventListener('submit', addItem);
-
-fetchItems(searchInput.value.trim());
+    fetchOrganizations(searchInput.value.trim());
 </script>
 {% endblock content %}

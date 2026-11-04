@@ -40,7 +40,7 @@ class MainTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience.html")
         self.assertContains(response, 'id="grid"')
-        self.assertContains(response, reverse("main:get_experience_json"))
+        self.assertContains(response, reverse("api:experience-list"))
 
     def test_experience_json(self):
         data = self.client.get(reverse("main:get_experience_json")).json()
@@ -71,7 +71,7 @@ class MainTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "organization.html")
         self.assertContains(response, 'id="grid"')
-        self.assertContains(response, reverse("main:get_organization_json"))
+        self.assertContains(response, reverse("api:organization-list"))
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
 
     def test_organization_json(self):
