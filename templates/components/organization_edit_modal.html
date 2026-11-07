@@ -1,0 +1,39 @@
+<div id="edit-organization-modal" class="project-form-modal" popover="auto"
+      role="dialog" aria-modal="true" aria-labelledby="edit-organization-modal-title">
+  <button type="button" class="project-form-modal__backdrop"
+          popovertarget="edit-organization-modal" popovertargetaction="hide"
+          aria-label="Tutup form"></button>
+  <div class="project-form-modal__content">
+    <button type="button" class="project-form-modal__close"
+            popovertarget="edit-organization-modal" popovertargetaction="hide"
+            aria-label="Tutup form">&times;</button>
+    <h2 id="edit-organization-modal-title">Edit Organization</h2>
+    <form id="organization-edit-form" class="project-form">
+      <div class="form-group">
+        <label for="edit-name">Nama Organisasi</label>
+        <input type="text" name="name" id="edit-name" class="form-control" maxlength="200" required>
+      </div>
+      <div class="form-group">
+        <label for="edit-role">Peran / Jabatan</label>
+        <input type="text" name="role" id="edit-role" class="form-control" maxlength="100" required>
+      </div>
+      <div class="form-group">
+        <label for="edit-status">Status</label>
+        <input type="text" name="status" id="edit-status" class="form-control" maxlength="50" required>
+      </div>
+      <div class="form-group">
+        <label for="edit-is-active">Masih Aktif?</label>
+        <input type="checkbox" name="is_active" id="edit-is-active">
+      </div>
+      <div class="form-group">
+        <label for="edit-description">Deskripsi Organisasi</label>
+        <textarea name="description" id="edit-description" class="form-control" rows="4" required></textarea>
+      </div>
+      <div class="project-form-modal__actions">
+        <button type="button" class="button button-secondary"
+                popovertarget="edit-organization-modal" popovertargetaction="hide">Batal</button>
+        <button type="submit" class="button">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
