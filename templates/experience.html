@@ -40,6 +40,10 @@
   {% include "components/experience_form_modal.html" %}
 {% endif %}
 
+{% if user.is_superuser or is_editor %}
+  {% include "components/experience_edit_modal.html" %}
+{% endif %}
+
 {% csrf_token %}
 <script>
   // getCookie() dan escapeHtml() sudah tersedia dari static/js/utils.js (di-load oleh base.html)
@@ -47,7 +51,6 @@
   const BASE_EXPERIENCES_ENDPOINT = "{% url 'api:experience-list' %}";
   const DETAIL_EXPERIENCE_ENDPOINT = "{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}";
   const STAR_EXPERIENCE_ENDPOINT = "{% url 'api:experience-star' '00000000-0000-0000-0000-000000000000' %}";
-  const EDIT_EXPERIENCE_PAGE = "{% url 'main:edit_experience' '00000000-0000-0000-0000-000000000000' %}";
   const LOGIN_PAGE = "{% url 'main:login' %}";
   const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
   const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
@@ -63,6 +66,8 @@
   const searchForm = document.getElementById('search-form');
   const searchInput = document.getElementById('search-input');
   const experienceForm = document.getElementById('experience-form');
+  const experienceEditForm = document.getElementById('experience-edit-form');
+  let experiencesById = new Map(); // data terakhir dari API, dipakai untuk mengisi modal edit
   let experiencesAbortController;
   let searchDebounceTimer;
 
@@ -109,7 +114,8 @@
         </a>`;
 
     const editHtml = CAN_EDIT
-      ? `<a href="${escapeHtml(experienceEndpoint(EDIT_EXPERIENCE_PAGE, experience.id))}" class="button">Edit</a>`
+      ? `<button type="button" class="button"
+                data-action="edit" data-id="${escapeHtml(experience.id)}">Edit</button>`
       : '';
 
     const deleteHtml = IS_SUPERUSER
@@ -149,6 +155,7 @@
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const experiences = await response.json();
+      experiencesById = new Map(experiences.map(item => [String(item.id), item]));
       gridContainer.replaceChildren(...experiences.map(buildExperienceCardElement));
       if (experiences.length === 0) {
         emptyState.querySelector('p').textContent = searchQuery ? EMPTY_SEARCH : EMPTY_DEFAULT;
@@ -206,10 +213,53 @@
 
   if (experienceForm) experienceForm.addEventListener('submit', addExperience);
 
+  // ===== EDIT (PATCH) lewat modal: dipakai pemilik dan Editor =====
+  function openEditModal(id) {
+    const experience = experiencesById.get(String(id));
+    if (!experience || !experienceEditForm) return;
+    experienceEditForm.dataset.id = experience.id;
+    document.getElementById('edit-title').value = experience.title;
+    document.getElementById('edit-description').value = experience.description;
+    document.getElementById('edit-category').value = experience.category;
+    // API mengirim "2026-11-19T03:05:00Z"; input datetime-local butuh "2026-11-19T03:05"
+    document.getElementById('edit-ended-at').value = experience.ended_at ? experience.ended_at.slice(0, 16) : '';
+    document.getElementById('edit-experience-modal').showPopover();
+  }
+
+  async function editExperience(event) {
+    event.preventDefault();
+    const button = experienceEditForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      const fields = new FormData(experienceEditForm);
+      const payload = Object.fromEntries(
+        ['title', 'description', 'category', 'ended_at'].map(name => [name, fields.get(name)])
+      );
+      payload.ended_at = payload.ended_at || null; // input datetime kosong -> null
+      await writeExperience(
+        experienceEndpoint(DETAIL_EXPERIENCE_ENDPOINT, experienceEditForm.dataset.id),
+        'PATCH', payload,
+      );
+      document.getElementById('edit-experience-modal').hidePopover();
+      showToast('Berhasil', 'Experience berhasil diperbarui!', 'success');
+      await fetchExperiences(searchInput.value.trim());
+    } catch (error) {
+      showToast('Gagal memperbarui data', error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  if (experienceEditForm) experienceEditForm.addEventListener('submit', editExperience);
+
   gridContainer.addEventListener('click', async function (event) {
     const button = event.target.closest('button[data-action]');
     if (!button || button.disabled) return;
     const action = button.dataset.action;
+    if (action === 'edit') {
+      openEditModal(button.dataset.id);
+      return;
+    }
     if (action === 'delete' && !window.confirm('Yakin ingin menghapus data ini?')) return;
     button.disabled = true;
     try {
