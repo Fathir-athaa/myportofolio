@@ -191,8 +191,14 @@ class OrganizationAPITest(APITestCase):
             self.assertEqual(self.client.post(self.list_url, self.payload, format="json").status_code, 403)
             self.assertEqual(self.client.patch(self.detail_url, {"role": "X"}, format="json").status_code, 403)
             self.assertEqual(self.client.delete(self.detail_url).status_code, 403)
+        # Pastikan database benar-benar tidak berubah, bukan hanya status 403
+        self.assertEqual(Organization.objects.count(), 1)
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.name, "BEM Fasilkom")
+        self.assertEqual(self.organization.role, "Staff")
         self.client.force_authenticate(user=None)
         self.assertEqual(self.client.post(self.star_url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.organization.starred_by.count(), 0)
         self.client.force_authenticate(user=self.visitor)
         response = self.client.post(self.star_url)
         self.assertTrue(response.data["is_starred"])
@@ -219,3 +225,25 @@ class OrganizationAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["name"], "Org Tebal")
         self.assertEqual(response.data["description"], "Halo")
+
+    def test_session_patch_without_csrf_is_rejected(self):
+        client = APIClient(enforce_csrf_checks=True)
+        self.assertTrue(client.login(username="editor", password="test-password"))
+        response = client.patch(self.detail_url, {"role": "Tanpa CSRF"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.role, "Staff")
+
+    def test_session_patch_with_csrf_succeeds_for_editor(self):
+        client = APIClient(enforce_csrf_checks=True)
+        self.assertTrue(client.login(username="editor", password="test-password"))
+        # Browsable API merender form berisi token CSRF untuk Editor
+        page = client.get(self.detail_url, HTTP_ACCEPT="text/html")
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        token = client.cookies["csrftoken"].value
+        response = client.patch(
+            self.detail_url, {"role": "Dengan CSRF"}, format="json", HTTP_X_CSRFTOKEN=token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.role, "Dengan CSRF")
