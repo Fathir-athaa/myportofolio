@@ -216,6 +216,9 @@ class OrganizationAPITest(APITestCase):
         response = self.client.post(self.star_url)
         self.assertTrue(response.data["is_starred"])
         self.assertEqual(response.data["star_count"], 1)
+        response = self.client.post(self.star_url)
+        self.assertFalse(response.data["is_starred"])
+        self.assertEqual(response.data["star_count"], 0)
 
     def test_owner_can_create_and_delete(self):
         self.client.force_authenticate(user=self.owner)
