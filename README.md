@@ -440,3 +440,84 @@ Di tugas ini aku pakai **Gemini** sebagai pendamping, dan teman berdiskusi.
 - Menyunting, menulis ulang, dan menyesuaikan draf README.
 
 Dalam menyusun bahasa pada readme ini masi menggunakana AI ,tetapi ide yang ingin disampaikan dan alurnya dari aku sendiri , dan aku juga memperbaiki bahasa yang tidak sesuai agar mudah di ikuti alurnya.
+
+
+
+# Tugas 6 — Django REST Framework Implementation
+
+# Fitur
+
+1. Serializer — OrganizationSerializer dan ExperienceSerializer di main/serializers.py memakai fields yang ditulis eksplisit
+2. Validasi di serializer — validate_name, validate_role, validate_status, dan validate_description (Organization) serta validate_title dan validate_description (Experience) membersihkan input dengan strip_tags
+3. Permission 4 peran — IsPortfolioOwnerOrEditorOrReadOnly di main/permissions.py dipasang di endpoint daftar dan detail. Endpoint star memakai IsAuthenticated, dan akun pemberi star selalu diambil dari request.user.
+4. API view berbasis fungsi — @api_view + SessionAuthentication di main/api_views.py.
+5. Modal edit lewat PATCH — tombol Edit di halaman Organization dan Experience membuka modal yang langsung terisi data kartu, lalu mengirim PATCH ke API dengan fetch().
+6. Browsable API  setiap endpoint bisa dibuka langsung di browser. Form POST/PUT/PATCH dan tombol DELETE hanya muncul untuk akun yang memang punya izin,
+
+# Struktur Proyek yang Diperbarui
+
+myportofolio/
+├── main/
+│   ├── serializers.py      # BARU — ExperienceSerializer & OrganizationSerializer
+│   ├── permissions.py      # BARU — IsPortfolioOwnerOrReadOnly & IsPortfolioOwnerOrEditorOrReadOnly
+│   ├── api_views.py        # BARU — daftar, detail, star (@api_view + SessionAuthentication)
+│   ├── api_urls.py         # BARU — /api/v1/experiences/ & /api/v1/organizations/
+│   ├── tests_api.py        # BARU — 21 test APITestCase (Experience & Organization)
+│   ├── tests.py            # DIUBAH — 2 assertion menunjuk ke URL API baru
+│   └── urls.py             # DIUBAH — route media hanya untuk folder gambar
+├── portofolio/
+│   ├── settings.py         # DIUBAH — "rest_framework" di INSTALLED_APPS
+│   └── urls.py             # DIUBAH — include api/v1/ dan api-auth/
+├── templates/
+│   ├── experience.html     # DIUBAH — memakai /api/v1/, tombol Edit membuka modal PATCH
+│   ├── organization.html   # DIUBAH — memakai /api/v1/, tombol Edit membuka modal PATCH
+│   └── components/
+│       ├── experience_edit_modal.html    # BARU
+│       └── organization_edit_modal.html  # BARU
+└── requirements.txt        # DIUBAH — djangorestframework~=3.18.3
+
+# Cara Menjalankan & Menguji
+
+python -m venv env
+env\Scripts\activate            # Windows (macOS/Linux: source env/bin/activate)
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+python manage.py test main      # 40 test: 21 test API + 19 test lama
+
+# Uji manual
+1. Pemilik: tambah data (POST 201), tambah dengan nama <b></b> (POST 400 + toast), edit (PATCH 200), star (POST 200), hapus (DELETE 204).
+2. Editor: hanya ada tombol Star dan Edit. Edit berhasil (PATCH 200), nama <b></b> ditolak (PATCH 400, modal tetap terbuka).
+3. Pengguna biasa: hanya tombol Star.
+4. Tanpa login: daftar tetap tampil, tombol star berubah jadi "Login untuk star".
+5. Browsable API: buka /api/v1/organizations/<id>/ sebagai Editor. Ada tombol PUT dan PATCH, tapi tidak ada DELETE.
+
+# Progres Pengerjaan
+Memasang DRF, membuat serializer, permission, API view, dan api_urls.py, lalu mengganti AJAX di experience.html dan organization.html ke /api/v1/. Sempat kena ModuleNotFoundError: No module named 'main.api_urls' karena menjalankan check sebelum file itu dibuat. /api/v1/ juga sempat 404 saat runserver walaupun test lulus. Penyebabnya route media "tangkap semua" di main/urls.py, yang kemudian diperbaiki. Menguji Browsable API dengan akun superuser (POST 201 → PATCH 200 → DELETE 204 → GET 404) dan memastikan akun biasa tidak mendapat form POST.
+
+# Pertanyaan Reflektif
+
+1. REST (Representational State Transfer) adalah gaya arsitektur untuk merancang web API, bukan library atau format data. Data diperlakukan sebagai resource yang punya alamat sendiri (/api/v1/organizations/ untuk kumpulan, /api/v1/organizations/3/ untuk satu data), tindakan dinyatakan lewat HTTP method (GET membaca, POST membuat, PUT/PATCH mengubah, DELETE menghapus), klien dan server bertukar representasi data seperti JSON, dan setiap respons memakai status code yang bermakna (201, 204, 400, 403, 404). Karena itu JSON saja belum cukup. Endpoint Tugas 5-ku juga mengembalikan JSON, tapi tindakannya ditulis di URL dan semuanya memakai POST (/organization/add-ajax/, /organization/<id>/delete/), dan hapus data malah membalas redirect. Itu gaya RPC, bukan REST. (Proyekku memakai SessionAuthentication, jadi belum sepenuhnya stateless. Untuk klien AJAX di website yang sama, ini masih wajar.) PUT mengirim representasi pengganti yang lengkap, jadi semua field wajib harus dikirim. PATCH hanya mengirim field yang ingin diubah, dan field lain tetap. Contoh di test-ku: PUT {"title": "Incomplete"} ditolak 400 karena description tidak dikirim, sedangkan PATCH {"role": "Ketua Divisi"} hanya mengubah role. PUT cocok untuk form yang selalu mengirim semua field sebagai pengganti utuh. PATCH cocok untuk perubahan sebagian, misalnya hanya mengganti status aktif. Modal edit-ku memakai PATCH supaya tetap aman kalau suatu saat form-nya hanya mengirim sebagian field.
+
+2. Serializer adalah "kontrak data" antara model dan klien, dan bekerja dua arah. Saat GET, serializer mengubah objek model menjadi tipe data Python yang lalu dirender menjadi JSON. Saat POST/PUT/PATCH, serializer membaca request.data, memvalidasinya (is_valid()), menyediakan validated_data, lalu save() memanggil create() atau update(). Dibanding merakit dictionary manual dengan JsonResponse seperti di Tutorial 05, keuntungannya:
+
+- Field yang dikirim ditentukan di satu tempat (fields), sehingga data sensitif tidak bocor karena lupa.
+- Validasi terpusat. validate_name membersihkan input dengan strip_tags, ChoiceField menolak kategori yang tidak ada, dan is_valid(raise_exception=True) otomatis membalas 400 dengan error per field.
+- Field hasil perhitungan seperti star_count otomatis read-only, jadi tidak bisa dipalsukan (test_computed_fields_are_read_only).
+- Satu serializer dipakai untuk input dan output sekaligus. Dulu output dirakit manual di get_organization_json, sedangkan input divalidasi terpisah lewat OrganizationForm.
+- Lewat context, serializer bisa menghitung is_starred sesuai akun yang sedang melihat.
+
+3. Autentikasi menjawab "siapa kamu". Di DRF, SessionAuthentication membaca cookie session dan mengisi request.user. Otorisasi menjawab "kamu boleh melakukan apa". Permission class seperti IsPortfolioOwnerOrEditorOrReadOnly memutuskan apakah request boleh diteruskan berdasarkan request.user dan HTTP method-nya. Urutannya: autentikasi dulu, lalu permission, baru isi view. Itu sebabnya pengguna biasa yang mengubah data yang tidak ada mendapat 403, bukan 404. Hak akses harus dicek di server karena menyembunyikan tombol hanya mengubah tampilan, bukan aturan. Siapa pun bisa mengirim request langsung lewat Console browser, Browsable API, atau curl tanpa menyentuh tombol. Contohnya, Editor tidak melihat tombol Hapus, tapi kalau ia mengirim DELETE langsung, server tetap menolak dengan 403 karena permission class. Ini dibuktikan oleh test_editor_can_update_but_not_create_or_delete, yang juga mengecek datanya tidak terhapus. Template hanyalah tampilan untuk pengguna; sumber kebenaran tetap di server.
+
+4. SessionAuthentication mengandalkan cookie session yang dikirim otomatis oleh browser ke situsku, termasuk ketika request itu dipicu dari situs lain. Tanpa CSRF, situs jahat bisa membuat form tersembunyi yang mengirim POST atau DELETE ke /api/v1/organizations/ atas nama korban yang sedang login. Token CSRF mencegah hal ini: token ada di cookie csrftoken yang hanya bisa dibaca halaman dari origin yang sama, lalu dikirim ulang lewat header X-CSRFToken. Situs lain tidak bisa membaca cookie itu, jadi tidak bisa membuat header yang benar. Karena itu DRF mewajibkan token CSRF untuk POST, PUT, PATCH, dan DELETE dari pengguna yang terautentikasi lewat session. force_authenticate melewati proses autentikasi sepenuhnya: request.user langsung diisi tanpa session, tanpa cookie, dan tanpa pemeriksaan CSRF. Test seperti itu tetap lulus walaupun perlindungan CSRF rusak, jadi tidak membuktikan apa-apa soal CSRF. Untuk membuktikannya aku memakai APIClient(enforce_csrf_checks=True) dan .login() yang membuat session sungguhan: PATCH tanpa token ditolak 403 dan datanya tidak berubah (test_session_patch_without_csrf_is_rejected), sedangkan PATCH dengan token dari Browsable API berhasil 200 (test_session_patch_with_csrf_succeeds_for_editor).
+
+# AI Disclosure
+Di tugas ini aku pakai Gemini
+
+# Bagian yang dibantu AI:
+1. Memetakan contoh di Tutorial 7
+2. Menemukan penyebab /api/v1/ 404 saat runserver
+3. Membantu membaca pesan error saat debugging
+
+# Dalam menyusun README dan jawaban pertanyaan reflektif ini aku masih dibantu AI untuk merangkai kata-katanya.
