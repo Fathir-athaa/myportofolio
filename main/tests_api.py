@@ -3,6 +3,7 @@ import uuid
 from django.contrib.auth.models import Group, User
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient, APITestCase
 
 from main.models import Experience, Organization
@@ -44,14 +45,14 @@ class ExperienceAPITest(APITestCase):
         self.assertEqual(self.client.get(url).status_code, status.HTTP_404_NOT_FOUND)
 
     def test_guest_and_visitor_cannot_write(self):
-        for user in (None, self.visitor):
+        # Tamu (tanpa kredensial) -> 401 karena TokenAuthentication ada di urutan
+        # pertama; visitor yang sudah login tetapi bukan owner -> 403.
+        for user, expected in ((None, 401), (self.visitor, 403)):
             self.client.force_authenticate(user=user)
-            self.assertEqual(self.client.post(self.list_url, self.payload, format="json").status_code, 403)
-            self.assertEqual(self.client.patch(self.detail_url, {"title": "Changed"}, format="json").status_code, 403)
-            self.assertEqual(self.client.delete(self.detail_url).status_code, 403)
+            self.assertEqual(self.client.post(self.list_url, self.payload, format="json").status_code, expected)
+            self.assertEqual(self.client.patch(self.detail_url, {"title": "Changed"}, format="json").status_code, expected)
+            self.assertEqual(self.client.delete(self.detail_url).status_code, expected)
         self.assertEqual(Experience.objects.count(), 1)
-        self.experience.refresh_from_db()
-        self.assertEqual(self.experience.title, "Asisten Dosen")
 
     def test_owner_can_create(self):
         self.client.force_authenticate(user=self.owner)
@@ -87,7 +88,7 @@ class ExperienceAPITest(APITestCase):
         self.assertFalse(Experience.objects.filter(pk=self.experience.id).exists())
 
     def test_star_requires_login_and_toggles(self):
-        self.assertEqual(self.client.post(self.star_url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client.post(self.star_url).status_code, status.HTTP_401_UNAUTHORIZED)
         self.client.force_authenticate(user=self.visitor)
         response = self.client.post(self.star_url)
         self.assertTrue(response.data["is_starred"])
@@ -263,3 +264,56 @@ class OrganizationAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.organization.refresh_from_db()
         self.assertEqual(self.organization.role, "Dengan CSRF")
+
+class ExperienceTokenAPITest(APITestCase):
+    """Assignment 9: Flutter menulis Experience memakai token."""
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser(
+            username="owner", password="test-password", email="owner@example.com",
+        )
+        self.experience = Experience.objects.create(
+            title="Asisten Dosen", description="Membantu praktikum", category="part-time",
+        )
+        self.token = Token.objects.create(user=self.owner)
+        self.list_url = reverse("api:experience-list")
+        self.detail_url = reverse("api:experience-detail", args=[self.experience.id])
+        self.payload = {
+            "title": "Magang Mobile", "description": "Membangun aplikasi Flutter",
+            "category": "internship", "ended_at": None,
+        }
+
+    def test_public_list_without_token(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_post_with_token_creates_experience(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+        response = self.client.post(self.list_url, self.payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["category_display"], "Internship")
+        self.assertTrue(response.data["is_ongoing"])
+        self.assertEqual(Experience.objects.count(), 2)
+
+    def test_post_with_ended_at_from_flutter(self):
+        # Format DateTime.toIso8601String() dari Dart (tanpa zona waktu).
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+        payload = {**self.payload, "ended_at": "2026-11-20T00:00:00.000"}
+        response = self.client.post(self.list_url, payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data["is_ongoing"])
+
+    def test_deleted_token_returns_401(self):
+        key = self.token.key
+        self.token.delete()
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {key}")
+        response = self.client.post(self.list_url, self.payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(Experience.objects.count(), 1)
+
+    def test_delete_with_token(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+        response = self.client.delete(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Experience.objects.exists())

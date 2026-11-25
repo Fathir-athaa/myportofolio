@@ -16,12 +16,12 @@ from main.serializers import (
 )
 
 
-# =====================================================================
-# EXPERIENCE hanya owener can change
-# =====================================================================
+# EXPERIENCE (Assignment 9) -> GET publik, tulis hanya owner/Editor.
+# Tanpa @authentication_classes agar DEFAULT_AUTHENTICATION_CLASSES
+# (TokenAuthentication + SessionAuthentication) berlaku: Flutter memakai
+# token, halaman web tetap memakai session.
 
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_list(request):
     if request.method in ("GET", "HEAD"):
@@ -44,7 +44,6 @@ def experience_list(request):
 
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_detail(request, experience_id):
     experience = get_object_or_404(
@@ -68,7 +67,6 @@ def experience_detail(request, experience_id):
 
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def experience_star(request, experience_id):
     experience = get_object_or_404(Experience, pk=experience_id)
