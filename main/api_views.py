@@ -7,9 +7,13 @@ from rest_framework.decorators import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from main.models import Experience, Organization
-from main.permissions import IsPortfolioOwnerOrEditorOrReadOnly
-from main.serializers import ExperienceSerializer, OrganizationSerializer
+from main.models import Experience, Organization, Project
+from main.permissions import (
+    IsPortfolioOwnerOrEditorOrReadOnly, IsPortfolioOwnerOrReadOnly,
+)
+from main.serializers import (
+    ExperienceSerializer, OrganizationSerializer, ProjectSerializer,
+)
 
 
 # =====================================================================
@@ -138,3 +142,32 @@ def organization_star(request, organization_id):
         organization.starred_by.add(request.user)
     serializer = OrganizationSerializer(organization, context={"request": request})
     return Response(serializer.data)
+
+@api_view(["GET", "HEAD", "POST"])
+@permission_classes([IsPortfolioOwnerOrReadOnly])
+def project_list(request):
+    if request.method in ("GET", "HEAD"):
+        projects = Project.objects.all()
+        serializer = ProjectSerializer(projects, many=True)
+        return Response(serializer.data)
+
+    serializer = ProjectSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "HEAD"])
+@permission_classes([IsPortfolioOwnerOrReadOnly])
+def project_detail(request, id):
+    project = get_object_or_404(Project, pk=id)
+    serializer = ProjectSerializer(project)
+    return Response(serializer.data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def api_logout(request):
+    # Hapus token milik pemanggil (jika login memakai token), lalu 204.
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

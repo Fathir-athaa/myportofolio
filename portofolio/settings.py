@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-p1r1m&+j+f%$^)4qhymci4t(d3tn5nmb%ul(akp&+u9sn^13dg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1' , 'fathir-atha-myportofolio.pws.cs.ui.ac.id','*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '10.0.2.2', 'fathir-atha-myportofolio.pws.cs.ui.ac.id','*']
 PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
 
 
@@ -45,10 +45,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -162,3 +165,17 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+}
+
+CORS_ALLOW_ALL_ORIGINS = not PRODUCTION
+if PRODUCTION:
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+        if origin.strip()
+    ]

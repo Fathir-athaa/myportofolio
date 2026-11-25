@@ -1,5 +1,5 @@
 from django.contrib import admin
-from main.models import Experience,ExperienceImage,Organization,OrganizationImage
+from main.models import Experience,ExperienceImage,Organization,OrganizationImage,Project
 
 class ExperienceImageInline(admin.TabularInline):
     model = ExperienceImage
@@ -18,3 +18,7 @@ class ExperienceAdmin(admin.ModelAdmin):
 class OrganizationAdmin(admin.ModelAdmin):
     inlines = [OrganizationImageInline]
     list_display = ('name', 'role', 'status', 'is_active')
+    
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ('title', 'tech_stack', 'project_url')

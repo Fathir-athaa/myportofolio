@@ -55,3 +55,22 @@ class OrganizationImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.organization.name}"
+
+
+
+class Project(models.Model):
+    """Proyek portofolio yang diekspos lewat /api/v1/projects/ (Tutorial 07 & 10)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    tech_stack = models.CharField(max_length=255)
+    project_url = models.URLField()
+    project_image_url = models.URLField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
